@@ -1,0 +1,297 @@
+<section class="manage-students">
+  <h2>Manage Students</h2>
+
+  <!-- 🔍 Search and Filter -->
+  <div class="search-bar">
+    <input
+      type="text"
+      id="student-search"
+      placeholder="Search by name or email..."
+    />
+    <button class="btn btn-primary">Search</button>
+  </div>
+
+  <!-- 📋 Student Table -->
+  <div class="table-wrapper">
+    <table class="students-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Full Name</th>
+          <th>Email</th>
+          <th>Plan</th>
+          <th>Progress</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Populated via JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Edit Student Modal -->
+  <div id="edit-student-modal" class="modal" style="display: none">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h3>Edit Student Info</h3>
+      <form id="edit-student-form">
+        <input
+          type="text"
+          id="edit-username"
+          placeholder="Full Name"
+          required
+        />
+        <input type="number" id="edit-level" placeholder="Level" min="1" />
+        <input type="number" id="edit-points" placeholder="Points" min="0" />
+        <input
+          type="number"
+          id="edit-projects"
+          placeholder="Projects Done"
+          min="0"
+        />
+        <input
+          type="number"
+          id="edit-attendance-week"
+          placeholder="Attendance (Week)"
+          min="0"
+        />
+        <input
+          type="number"
+          id="edit-attendance-month"
+          placeholder="Attendance (Month)"
+          min="0"
+        />
+        <input
+          type="text"
+          id="edit-plan"
+          placeholder="Plan (Free / Standard / Premium)"
+        />
+
+        <!-- Upcoming Sessions -->
+        <div>
+          <label>Upcoming Sessions:</label>
+          <div id="upcoming-sessions-container">
+            <!-- JS will populate session fields here -->
+          </div>
+          <button type="button" id="add-session-btn">+ Add Session</button>
+        </div>
+
+        <button type="submit">Save Changes</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script src="/js/manage-students.js"></script>
+
+<style>
+  /* Basic page styling */
+  .manage-students {
+    padding: 40px;
+    background-color: #0d1b2a;
+    color: #fff;
+  }
+
+  .manage-students h2 {
+    font-size: 2rem;
+    margin-bottom: 20px;
+    color: #1a9fff;
+    text-align: center;
+  }
+
+  .search-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .search-bar input {
+    padding: 10px;
+    border: 1px solid #2f3f50;
+    border-radius: 6px;
+    background-color: #111920;
+    color: #fff;
+    width: 250px;
+  }
+
+  .btn,
+  .btn-small {
+    background-color: #1a9fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+
+  .btn:hover,
+  .btn-small:hover {
+    background-color: #1580cc;
+    transform: translateY(-1px);
+  }
+
+  .btn-small {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    margin-right: 5px;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+  }
+
+  .students-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #212f40;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .students-table th,
+  .students-table td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #2f3f50;
+    font-size: 0.95rem;
+  }
+
+  .students-table th {
+    background-color: #1b2838;
+    color: #1a9fff;
+  }
+
+  .students-table tbody tr:hover {
+    background-color: #1a9fff20;
+  }
+
+  /* Modal styling */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal-content {
+    background-color: #1b2636;
+    margin: 10% auto;
+    padding: 30px;
+    border-radius: 10px;
+    width: 500px;
+    max-width: 90%;
+    color: #fff;
+    position: relative;
+  }
+
+  .modal-content h3 {
+    margin-bottom: 20px;
+    text-align: center;
+    color: #1a9fff;
+  }
+
+  .modal .close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+
+  #edit-student-form input,
+  #edit-student-form textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    border: 1px solid #2f3f50;
+    background-color: #112d4e;
+    color: #fff;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+  }
+
+  #edit-student-form button[type="submit"] {
+    background-color: #1a9fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+  }
+
+  #edit-student-form button[type="submit"]:hover {
+    background-color: #1580cc;
+  }
+
+  /* Upcoming session group */
+  .upcoming-session-group {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+    align-items: center;
+  }
+
+  .upcoming-session-group input {
+    flex: 1;
+  }
+
+  .remove-session-btn {
+    background-color: #ff4d4d;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    font-size: 0.9rem;
+  }
+
+  .remove-session-btn:hover {
+    background-color: #cc0000;
+  }
+
+  #add-session-btn {
+    margin-top: 5px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .modal-content {
+      padding: 20px;
+    }
+
+    .upcoming-session-group {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-bar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-bar input {
+      width: 100%;
+    }
+
+    .students-table th,
+    .students-table td {
+      padding: 10px;
+    }
+  }
+</style>

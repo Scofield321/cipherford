@@ -1,0 +1,56 @@
+<section class="track-students">
+  <h2>📊 Track Student Progress</h2>
+
+  <!-- Student Selection -->
+  <div class="search-student">
+    <label for="student-select">Select a student:</label>
+    <select id="student-select">
+      <option value="">-- Choose a student --</option>
+      <!-- Populated via JS -->
+    </select>
+  </div>
+
+  <!-- Charts Section -->
+  <div id="student-charts" style="display: none">
+    <h3 id="student-name" style="margin-bottom: 20px">Student's Progress</h3>
+
+    <canvas id="track-student-chart" height="200"></canvas>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/js/track-students.js"></script>
+
+<style>
+  .track-students {
+    padding: 30px;
+    background-color: #0d1b2a;
+    color: #fff;
+  }
+
+  .search-student {
+    margin-bottom: 20px;
+  }
+
+  select {
+    padding: 10px;
+    border-radius: 6px;
+    background-color: #112d4e;
+    color: #fff;
+    border: none;
+  }
+
+  .stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+  }
+
+  .stats-cards .card {
+    background-color: #1a2636;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+  }
+</style>

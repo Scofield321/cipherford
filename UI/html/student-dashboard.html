@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Dashboard</title>
+    <link rel="stylesheet" href="/UI/css/student-dashboard.css" />
+  </head>
+  <body>
+    <!-- Menu Button -->
+    <button class="menu-toggle" id="menu-toggle">&#9776;</button>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">DecipherCoded</div>
+      </div>
+      <nav class="sidebar-nav">
+        <ul>
+          <li><a href="#" class="active" data-section="home">Dashboard</a></li>
+          <li><a href="#" data-section="logout">Logout</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="student-dashboard" id="dashboard">
+      <header class="dashboard-header">
+        <div class="profile-info">
+          <span id="student-name">Student Name</span>
+        </div>
+      </header>
+
+      <!-- Sections -->
+      <section id="home-section" class="dashboard-section active">
+        <h2>Welcome, <span id="student-name-card">Student Name</span></h2>
+
+        <!-- Progress Cards -->
+        <div class="dashboard-cards">
+          <div class="dashboard-card">
+            <h3>Current Level</h3>
+            <p id="student-level">1</p>
+          </div>
+          <div class="dashboard-card">
+            <h3>Total Points</h3>
+            <p id="student-points">0</p>
+          </div>
+          <div class="dashboard-card">
+            <h3>Attendance (Week)</h3>
+            <p id="attendance-week">0</p>
+          </div>
+          <div class="dashboard-card">
+            <h3>Projects Completed</h3>
+            <p id="projects-done">0</p>
+          </div>
+        </div>
+
+        <!-- Upcoming Sessions -->
+        <section class="upcoming-sessions">
+          <h3>Upcoming Sessions</h3>
+          <ul id="upcoming-sessions-list">
+            <li>No upcoming sessions</li>
+          </ul>
+        </section>
+
+        <!-- Progress Charts -->
+        <section class="charts">
+          <h3>Progress Reports</h3>
+          <div class="chart" id="level-progress-chart">
+            [Level Progress Chart]
+          </div>
+          <div class="chart" id="attendance-chart">[Attendance Chart]</div>
+          <div class="chart" id="projects-chart">[Projects Chart]</div>
+        </section>
+      </section>
+    </main>
+
+    <!-- Logout Modal -->
+    <div id="logout-modal" class="logout-container" style="display: none">
+      <div class="logout-card">
+        <h4>Logout Confirmation</h4>
+        <p>Are you sure you want to logout of your student dashboard?</p>
+        <div class="logout-buttons">
+          <button id="logout-cancel-btn" class="btn cancel-btn">Cancel</button>
+          <button id="logout-confirm-btn" class="btn confirm-btn">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- JS -->
+    <script src="/js/student-dashboard.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const menuBtn = document.getElementById("menu-toggle");
+        const sidebar = document.getElementById("sidebar");
+        const logoutModal = document.getElementById("logout-modal");
+        const cancelBtn = document.getElementById("logout-cancel-btn");
+        const confirmBtn = document.getElementById("logout-confirm-btn");
+        const dashboardLinks = document.querySelectorAll(".sidebar-nav a");
+
+        // Open sidebar
+        menuBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          sidebar.classList.add("active");
+          menuBtn.style.display = "none";
+        });
+
+        // Close sidebar on link click
+        dashboardLinks.forEach((link) => {
+          link.addEventListener("click", (e) => {
+            const section = link.dataset.section;
+            if (section === "logout") {
+              e.preventDefault();
+              logoutModal.style.display = "flex";
+            }
+            sidebar.classList.remove("active");
+            menuBtn.style.display = "block";
+          });
+        });
+
+        // Cancel logout
+        cancelBtn.addEventListener("click", () => {
+          logoutModal.style.display = "none";
+          document.querySelector('[data-section="home"]').click();
+        });
+
+        // Confirm logout
+        confirmBtn.addEventListener("click", () => {
+          // Only remove student-specific key
+          localStorage.removeItem("loggedInStudent");
+          window.location.href = "login.html";
+        });
+
+        // Click outside to close sidebar
+        window.addEventListener("click", (e) => {
+          if (
+            sidebar.classList.contains("active") &&
+            !sidebar.contains(e.target) &&
+            !menuBtn.contains(e.target)
+          ) {
+            sidebar.classList.remove("active");
+            menuBtn.style.display = "block";
+          }
+
+          if (e.target === logoutModal) {
+            logoutModal.style.display = "none";
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

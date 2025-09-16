@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Landing Page</title>
+    <link rel="stylesheet" href="/UI/css/index.css" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="navbar-left">
+        <a href="#" class="logo">TutorCode</a>
+      </div>
+
+      <div class="menu-toggle" id="menu-toggle">☰</div>
+
+      <div class="nav-menu" id="nav-menu">
+        <ul class="navbar-links">
+          <li><a href="#programs">Programs</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#testimonials">Testimonials</a></li>
+        </ul>
+
+        <div class="navbar-right">
+          <a href="login.html" class="nav-link">Login</a>
+          <a href="create-account.html" class="btn btn-secondary"
+            >Register for Free</a
+          >
+          <a href="#free-session" class="btn btn-primary try-lesson"
+            >Try Free Lesson Today</a
+          >
+        </div>
+      </div>
+    </nav>
+    <!-- 🎉 Hero / Banner -->
+    <section class="banner">
+      <div class="banner-content">
+        <h1>Learn to Code With Confidence</h1>
+        <p>Live sessions | Expert-led | Beginner friendly</p>
+        <a href="#programs" class="btn btn-primary">Explore Programs</a>
+      </div>
+    </section>
+
+    <!-- ❓ Why Choose Us -->
+    <section class="why-us" class="section">
+      <h2>Why Choose TutorCode?</h2>
+      <div class="why-cards">
+        <div class="why-card">
+          <img src="/assets/reason-1.png" alt="Teacher Support" />
+          <h3>1-on-1 Live Support</h3>
+          <p>Students receive real-time help during and after sessions.</p>
+        </div>
+        <div class="why-card">
+          <img src="/assets/reason-2.png" alt="Project Based" />
+          <h3>Project-Based Learning</h3>
+          <p>Every topic is reinforced with hands-on projects.</p>
+        </div>
+        <div class="why-card">
+          <img src="/assets/reason-3.png" alt="Flexible Schedule" />
+          <h3>Flexible Scheduling</h3>
+          <p>We work around your availability, not the other way around.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 🧠 Programs -->
+    <section class="programs section" id="programs">
+      <h2>Our Programs</h2>
+      <div class="program-cards">
+        <!-- Web Development (HTML, CSS) -->
+        <div class="program-card card">
+          <img
+            src="/assets/html-2.jpeg"
+            alt="Web Development"
+            class="program-img"
+          />
+          <h3>Web Development (HTML, CSS)</h3>
+          <p>Duration: 4 months | Sessions: 30+</p>
+          <div class="learning-outcomes">
+            <h4>What You'll Build:</h4>
+            <ul>
+              <li>Responsive personal & business websites</li>
+              <li>Portfolio websites to showcase your work</li>
+              <li>Landing pages for online businesses</li>
+              <li>Learn system architecture for complex sites</li>
+            </ul>
+          </div>
+          <a href="#free-session" class="btn btn-primary try-lesson"
+            >Try Free Lesson</a
+          >
+        </div>
+
+        <!-- JavaScript -->
+        <div class="program-card card">
+          <img
+            src="/assets/javascript-2.jpeg"
+            alt="JavaScript"
+            class="program-img"
+          />
+          <h3>JavaScript</h3>
+          <p>Duration: 4 months | Sessions: 30+</p>
+          <div class="learning-outcomes">
+            <h4>What You'll Build:</h4>
+            <ul>
+              <li>Interactive websites & web apps</li>
+              <li>Shopping carts & product pages</li>
+              <li>Mini games & browser-based apps</li>
+              <li>Dynamic user interfaces for real-world projects</li>
+            </ul>
+          </div>
+          <a href="#free-session" class="btn btn-primary try-lesson"
+            >Try Free Lesson</a
+          >
+        </div>
+
+        <!-- Python -->
+        <div class="program-card card">
+          <img src="/assets/python.jpeg" alt="Python" class="program-img" />
+          <h3>Python</h3>
+          <p>Duration: 4 months | Sessions: 30+</p>
+          <div class="learning-outcomes">
+            <h4>What You'll Build:</h4>
+            <ul>
+              <li>Automated tools & scripts to save time</li>
+              <li>Data analysis & visualization dashboards</li>
+              <li>Simple web apps and bots</li>
+              <li>
+                Practical projects like calculators, parsers, and mini-games
+              </li>
+            </ul>
+          </div>
+          <a href="#free-session" class="btn btn-primary try-lesson"
+            >Try Free Lesson</a
+          >
+        </div>
+
+        <!-- Frameworks (Vue, React) -->
+        <div class="program-card card">
+          <img
+            src="/assets/react-js.jpeg"
+            alt="Frameworks"
+            class="program-img"
+          />
+          <h3>Frameworks (Vue, React)</h3>
+          <p>Duration: 3 months | Sessions: 20+</p>
+          <div class="learning-outcomes">
+            <h4>What You'll Build:</h4>
+            <ul>
+              <li>Interactive single-page applications</li>
+              <li>Real-time dashboards & admin panels</li>
+              <li>Projects that fetch data from APIs</li>
+              <li>Portfolio-ready dynamic web apps</li>
+            </ul>
+          </div>
+          <a href="#free-session" class="btn btn-primary try-lesson"
+            >Try Free Lesson</a
+          >
+        </div>
+
+        <!-- Backend (Node.js) -->
+        <div class="program-card card">
+          <img src="/assets/node-js.jpeg" alt="Node.js" class="program-img" />
+          <h3>Backend (Node.js)</h3>
+          <p>Duration: 6 months | Sessions: 40+</p>
+          <div class="learning-outcomes">
+            <h4>What You'll Build:</h4>
+            <ul>
+              <li>Server-side apps & APIs for real projects</li>
+              <li>User authentication & database integration</li>
+              <li>File management and automated backend workflows</li>
+              <li>Mini e-commerce platforms or blog systems</li>
+            </ul>
+          </div>
+          <a href="#free-session" class="btn btn-primary try-lesson"
+            >Try Free Lesson</a
+          >
+        </div>
+
+        <!-- Databases (MongoDB, PostgreSQL) -->
+        <div class="program-card card">
+          <img
+            src="/assets/python-2.jpeg"
+            alt="Databases"
+            class="program-img"
+          />
+          <h3>Databases (MongoDB, PostgreSQL)</h3>
+          <p>Duration: 1.5 months | Sessions: 12+</p>
+          <div class="learning-outcomes">
+            <h4>What You'll Build:</h4>
+            <ul>
+              <li>Structured databases for real-world apps</li>
+              <li>CRUD operations for apps & websites</li>
+              <li>Integrate databases with web & mobile apps</li>
+              <li>Design practical schemas for business systems</li>
+            </ul>
+          </div>
+          <a href="#free-session" class="btn btn-primary try-lesson"
+            >Try Free Lesson</a
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- pricing section -->
+    <section class="pricing section" id="pricing">
+      <h2>Pricing Plans</h2>
+      <div class="pricing-cards">
+        <div class="price-card">
+          <h3>Basic</h3>
+          <p>$16.99/Session</p>
+          <p>1 hour/Session</p>
+          <p>
+            ✔ 2+ sessions/week<br />✔ Email/Chat support <br />
+            ✔ Assignments review in Session
+          </p>
+        </div>
+        <div class="price-card">
+          <h3>Standard</h3>
+          <p>$19.99/Session</p>
+          <p>1 hour/Session</p>
+          <p>
+            ✔ 2+ sessions/week<br />✔ Chat support<br />✔ Assignments review In
+            & Off Session <br />
+            ✔ Projects + Feedback
+          </p>
+        </div>
+        <div class="price-card">
+          <h3>Premium</h3>
+          <p>$24.99/Session</p>
+          <p>1 hour/Session</p>
+          <p>
+            ✔ 2+ sessions/week<br />✔ Live support<br />✔ More Projects +
+            Feedback
+          </p>
+        </div>
+      </div>
+    </section>
+    <p class="section-intro">
+      Not sure which plan is right for you? Compare all features below 👇
+    </p>
+
+    <section class="pricing-comparison">
+      <h2>Compare Our Plans</h2>
+      <div class="pricing-table">
+        <div class="table-header">
+          <div class="feature-column">Features</div>
+          <div class="plan-column">Basic</div>
+          <div class="plan-column popular">Standard</div>
+          <div class="plan-column">Premium</div>
+        </div>
+
+        <div class="table-row">
+          <div class="feature-column">2+ Sessions/Week</div>
+          <div class="plan-column">✔</div>
+          <div class="plan-column">✔</div>
+          <div class="plan-column">✔</div>
+        </div>
+
+        <div class="table-row">
+          <div class="feature-column">Chat Support</div>
+          <div class="plan-column">Email</div>
+          <div class="plan-column">Chat + Email</div>
+          <div class="plan-column">Live Support</div>
+        </div>
+
+        <div class="table-row">
+          <div class="feature-column">Assignments Review</div>
+          <div class="plan-column">✔ (In session)</div>
+          <div class="plan-column">✔ Off Session+ Feedback</div>
+          <div class="plan-column">✔ + Deep Feedback</div>
+        </div>
+
+        <div class="table-row">
+          <div class="feature-column">Projects</div>
+          <div class="plan-column">Basic</div>
+          <div class="plan-column">Basic - Advanced</div>
+          <div class="plan-column">✔ More Projects</div>
+        </div>
+
+        <div class="table-row">
+          <div class="feature-column">Career Readiness</div>
+          <div class="plan-column">❌</div>
+          <div class="plan-column">❌</div>
+          <div class="plan-column">✔</div>
+        </div>
+
+        <div class="table-row cta-row">
+          <div class="feature-column"></div>
+          <div class="plan-column">
+            <a href="create-account.html" class="btn btn-secondary"
+              >Choose Basic</a
+            >
+          </div>
+          <div class="plan-column">
+            <a href="create-account.html" class="btn btn-primary"
+              >Choose Standard</a
+            >
+          </div>
+          <div class="plan-column">
+            <a href="create-account.html" class="btn btn-secondary"
+              >Choose Premium</a
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="testimonials section" id="testimonials">
+      <h2>What Our Clients Say</h2>
+
+      <!-- 🧑‍🎓 Student Testimonials -->
+      <h3 class="sub-heading">From Our Students</h3>
+      <div class="testimonial-cards">
+        <div class="testimonial">
+          <p>
+            "TutorCode helped me land my first freelance client. Highly
+            recommend!"
+          </p>
+          <span>- Aisha, Uganda</span>
+        </div>
+        <div class="testimonial">
+          <p>
+            "Before this, I knew nothing about coding. Now I’m building my own
+            site!"
+          </p>
+          <span>- Musa, Tanzania</span>
+        </div>
+        <div class="testimonial">
+          <p>
+            "The tutor was patient, friendly, and the program was very
+            practical."
+          </p>
+          <span>- Rayhan, Kenya</span>
+        </div>
+      </div>
+
+      <!-- 👨‍👩‍👧 Parent & Plan Testimonials -->
+      <h3 class="sub-heading">From Parents & Plan Users</h3>
+      <div class="testimonial-cards">
+        <div class="testimonial">
+          <p>
+            “The Basic plan was perfect for my daughter to get started with
+            coding — now she’s building her first website!”
+          </p>
+          <h4>— Parent of 12-year-old</h4>
+        </div>
+
+        <div class="testimonial">
+          <p>
+            “Standard gave me real projects and feedback — I now feel confident
+            tackling freelance work.”
+          </p>
+          <h4>— High school student, Uganda</h4>
+        </div>
+
+        <div class="testimonial">
+          <p>
+            “Premium is just next level. Real-time help, feedback, and career
+            guidance made me feel like I had a personal coach.”
+          </p>
+          <h4>— Teen Developer, Tanzania</h4>
+        </div>
+      </div>
+    </section>
+
+    <!-- contact us -->
+    <section class="contact section" id="contact">
+      <h2>Contact Us</h2>
+      <p>
+        Have questions? Reach out via email, phone, or WeChat, and we’ll get
+        back to you promptly.
+      </p>
+
+      <div class="contact-container">
+        <div class="contact-info">
+          <div class="info-item">
+            <h4>Email</h4>
+            <p>support.deciphercoded@gmail.com</p>
+          </div>
+          <div class="info-item">
+            <h4>Phone</h4>
+            <p>+44 7746 267835</p>
+          </div>
+          <div class="info-item">
+            <h4>Address</h4>
+            <p>London, UK</p>
+          </div>
+          <div
+            class="contact-wechat"
+            style="flex: 1; min-width: 250px; text-align: center"
+          >
+            <h4 style="color: #1a9fff">WeChat</h4>
+            <p>Scan the QR code below to contact us</p>
+            <img
+              src="/assets/WeChat-qr-code.jpeg"
+              alt="Scan to contact us on WeChat"
+              style="
+                width: 200px;
+                height: auto;
+                border: 1px solid #ccc;
+                padding: 5px;
+                border-radius: 8px;
+              "
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- footer -->
+    <footer class="site-footer">
+      <div class="footer-container">
+        <div class="footer-logo">
+          <h3>TutorCode</h3>
+        </div>
+
+        <div class="footer-links">
+          <a href="#pricing">Pricing</a>
+          <a href="#programs">Programs</a>
+          <a href="#testimonials">Testimonials</a>
+          <a href="#contact">Contact</a>
+        </div>
+
+        <div class="footer-copy">
+          <p>
+            © <span id="current-year"></span> TutorCode. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Modal Overlay -->
+    <div id="freeLessonModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Free Lesson Preview</h2>
+        <p>Get a quick glimpse of what you’ll learn in this program!</p>
+
+        <!-- Sample content: video or text -->
+        <video width="100%" controls>
+          <source src="videos/sample-lesson.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+
+        <a
+          href="create-account.html"
+          class="btn btn-primary"
+          style="margin-top: 15px"
+          >Enroll in Full Program</a
+        >
+      </div>
+    </div>
+
+    <script type="module" src="/js/index.js"></script>
+  </body>
+</html>

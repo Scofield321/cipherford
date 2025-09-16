@@ -1,0 +1,229 @@
+/* Reset & Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body, html {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #0d1b2a;
+  color: #fff;
+  height: 100%;
+}
+
+/* Layout */
+.admin-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 220px;
+  background-color: #1b2838;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  transition: left 0.3s ease;
+}
+
+.sidebar-title {
+  font-size: 1.5rem;
+  color: #1a9fff;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.sidebar-nav a {
+  color: #ccc;
+  text-decoration: none;
+  display: block;
+  margin-bottom: 15px;
+  padding: 10px 15px;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.sidebar-nav a:hover,
+.sidebar-nav a.active {
+  background-color: #1a9fff;
+  color: #fff;
+}
+
+.main-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.admin-header {
+  background-color: #212f40;
+  padding: 20px 30px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-bottom: 1px solid #2f3f50;
+}
+
+.admin-header h1 {
+  font-size: 1.4rem;
+  font-weight: normal;
+  flex: 1;
+}
+
+.admin-header span {
+  color: #1a9fff;
+  font-weight: 500;
+}
+
+.admin-profile .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #1a9fff;
+}
+
+/* Content */
+.main-content {
+  padding: 30px;
+  background-color: #0d1b2a;
+  flex: 1;
+  overflow-y: auto;
+  transition: margin-left 0.3s ease;
+}
+
+/* Menu Toggle */
+.menu-toggle {
+  display: none !important;
+  font-size: 1.8rem;
+  background: none;
+  border: none;
+  color: #1a9fff;
+  cursor: pointer;
+}
+
+/* Logout Modal */
+.logout-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(13, 27, 42, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.logout-card {
+  background-color: #1b2838;
+  padding: 30px 40px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.logout-card h4 {
+  color: #1a9fff;
+  margin-bottom: 15px;
+}
+
+.logout-card p {
+  margin-bottom: 25px;
+  color: #cfd8e0;
+}
+
+.logout-buttons {
+  display: flex;
+  justify-content: space-around;
+  gap: 15px;
+}
+
+.logout-buttons .btn {
+  padding: 8px 25px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn {
+  background-color: #555f6e;
+  color: #ffffff;
+}
+
+.cancel-btn:hover {
+  background-color: #777f8e;
+}
+
+.confirm-btn {
+  background-color: #1a9fff;
+  color: #ffffff;
+}
+
+.confirm-btn:hover {
+  background-color: #1080e0;
+}
+
+/* Responsive Sidebar */
+@media (max-width: 900px) {
+  .menu-toggle {
+    display: block !important;
+    z-index: 1001;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 220px;
+    background-color: #1b2838;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar.active {
+    transform: translateX(0);
+  }
+
+  .main-content,
+  .parent-dashboard,
+  .student-dashboard {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .main-content.shift,
+  .parent-dashboard.shift,
+  .student-dashboard.shift {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+
+/* Small Screens */
+@media (max-width: 600px) {
+  .logout-card {
+    max-width: 90%;
+    padding: 20px;
+  }
+
+  .logout-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .logout-buttons .btn {
+    flex: 1;
+    padding: 10px 0;
+    font-size: 0.9rem;
+  }
+}
