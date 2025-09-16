@@ -58,7 +58,7 @@ function updateDashboard() {
   const metrics = [
     { id: "student-level", value: student.level, max: 5 },
     { id: "student-points", value: student.points, max: 100 },
-    { id: "attendance-week", value: student.attendanceWeek, max: 10 },
+    { id: "attendance-week", value: student.attendanceWeek, max: 3 },
     { id: "projects-done", value: student.projectsDone, max: 20 },
   ];
 
@@ -113,7 +113,7 @@ function updateDashboard() {
       id: "attendance-chart",
       label: "Attendance (week)",
       value: student.attendanceWeek,
-      max: 10,
+      max: 3,
       color: "linear-gradient(90deg, #ff6f61, #ffca3a)",
     },
     {

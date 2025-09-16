@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Restore localStorage Backup</title>
+  </head>
+  <body>
+    <h2>Restore localStorage Backup</h2>
+    <input type="file" id="fileInput" accept=".json" />
+    <button onclick="restoreData()">Restore Backup</button>
+
+    <script>
+      let backupData = null;
+
+      document
+        .getElementById("fileInput")
+        .addEventListener("change", function (e) {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+
+          reader.onload = function (e) {
+            try {
+              const raw = e.target.result.trim();
+              backupData = JSON.parse(raw); // parse nested JSON
+              alert(
+                "Backup loaded! Click 'Restore Backup' to restore to localStorage."
+              );
+            } catch (err) {
+              console.error("JSON parse error:", err.message);
+              alert("Invalid JSON file.");
+            }
+          };
+
+          reader.readAsText(file);
+        });
+
+      function restoreData() {
+        if (!backupData) {
+          alert("No backup data loaded.");
+          return;
+        }
+
+        // Convert objects/arrays back to strings for localStorage
+        for (const key in backupData) {
+          const value = backupData[key];
+          if (typeof value === "object") {
+            localStorage.setItem(key, JSON.stringify(value));
+          } else {
+            localStorage.setItem(key, value);
+          }
+        }
+
+        alert("localStorage restored successfully!");
+        location.reload(); // optional: reload to apply changes
+      }
+    </script>
+  </body>
+</html>

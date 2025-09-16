@@ -194,7 +194,8 @@ body {
   margin-top: 10px;
 }
 
-.child-sessions h5 {
+.child-sessions h5,
+.child-sessions h2 {
   color: #1a9fff;
   margin-bottom: 5px;
 }

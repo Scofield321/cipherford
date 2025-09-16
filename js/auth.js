@@ -92,6 +92,39 @@ createAccountBtn.addEventListener("click", () => {
   users.push(newUser);
   localStorage.setItem("users", JSON.stringify(users));
 
+  // Update backup automatically
+  updateBackup();
+
   alert(`Account created successfully! Welcome, ${username}.`);
   window.location.href = "login.html";
 });
+
+function updateBackup() {
+  const backup = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    try {
+      backup[key] = JSON.parse(localStorage.getItem(key));
+    } catch {
+      backup[key] = localStorage.getItem(key);
+    }
+  }
+
+  const backupString = JSON.stringify(backup, null, 2);
+
+  // Create timestamp for unique filename
+  const now = new Date();
+  const timestamp = now.toISOString().replace(/[:.]/g, "-");
+  const timestampedFileName = `localStorage-backup-${timestamp}.json`;
+
+  // Download timestamped backup
+  const blob = new Blob([backupString], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = timestampedFileName;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  console.log(`Backup created: ${timestampedFileName}`);
+}

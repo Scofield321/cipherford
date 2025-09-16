@@ -85,11 +85,9 @@ function renderChildren() {
       </div>
 
       <div class="child-sessions">
-        <h5>Upcoming Sessions</h5>
+        <h2>Upcoming Sessions</h2>
         ${sessionsHTML}
       </div>
-
-      <button class="view-child" data-id="${child.id}">View More</button>
     `;
 
     childrenListEl.appendChild(container);
