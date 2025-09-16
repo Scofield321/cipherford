@@ -1,0 +1,140 @@
+{
+  "loggedInStudent": {
+    "id": "cipher_scofield",
+    "username": "Cipher Scofield",
+    "email": "cipherscofield@gmail.com",
+    "country": "UK",
+    "password": "cipherscofield@1996",
+    "role": "student",
+    "level": 1,
+    "points": 17,
+    "attendanceWeek": 2,
+    "attendanceMonth": 5,
+    "projectsDone": 3,
+    "upcomingSessions": [
+      {
+        "date": "2025-09-18",
+        "time": "14:42",
+        "topic": "System architecture"
+      },
+      {
+        "date": "2025-09-27",
+        "time": "10:00",
+        "topic": "Project review"
+      }
+    ],
+    "avatar": "",
+    "plan": "Standard"
+  },
+  "loggedInUser": {
+    "id": "cipher_scofield",
+    "username": "Cipher Scofield",
+    "email": "cipherscofield@gmail.com",
+    "country": "UK",
+    "password": "cipherscofield@1996",
+    "role": "student",
+    "level": 1,
+    "points": 17,
+    "attendanceWeek": 1,
+    "attendanceMonth": 5,
+    "projectsDone": 1,
+    "upcomingSessions": [
+      {
+        "date": "2025-09-18",
+        "time": "14:42",
+        "topic": "System architecture"
+      }
+    ],
+    "avatar": "",
+    "plan": "Standard"
+  },
+  "loggedInAdmin": {
+    "id": "admin_master",
+    "username": "Admin Master",
+    "email": "admin@deciphercoded.com",
+    "password": "admin@1234",
+    "role": "admin"
+  },
+  "loggedInParent": {
+    "id": "jade_stanford",
+    "username": "Jade Stanford",
+    "email": "jadestanford@gmail.com",
+    "country": "USA",
+    "password": "jadescofield@1996",
+    "role": "parent",
+    "wechat": "scofield",
+    "childIds": [
+      "cipher_scofield"
+    ]
+  },
+  "todos": [
+    {
+      "id": 1757268966729,
+      "text": "coding",
+      "completed": true
+    },
+    {
+      "id": 1757269061228,
+      "text": "Coding with YIda",
+      "completed": true
+    },
+    {
+      "id": 1757269138605,
+      "text": "listening to music",
+      "completed": false
+    },
+    {
+      "id": 1757269183757,
+      "text": "driving my Rover",
+      "completed": false
+    }
+  ],
+  "users": [
+    {
+      "id": "cipher_scofield",
+      "username": "Cipher Scofield",
+      "email": "cipherscofield@gmail.com",
+      "country": "UK",
+      "password": "cipherscofield@1996",
+      "role": "student",
+      "level": 1,
+      "points": 17,
+      "attendanceWeek": 2,
+      "attendanceMonth": 5,
+      "projectsDone": 3,
+      "upcomingSessions": [
+        {
+          "date": "2025-09-18",
+          "time": "14:42",
+          "topic": "System architecture"
+        },
+        {
+          "date": "2025-09-27",
+          "time": "10:00",
+          "topic": "Project review"
+        }
+      ],
+      "avatar": "",
+      "plan": "Standard"
+    },
+    {
+      "id": "jade_stanford",
+      "username": "Jade Stanford",
+      "email": "jadestanford@gmail.com",
+      "country": "USA",
+      "password": "jadescofield@1996",
+      "role": "parent",
+      "wechat": "scofield",
+      "childIds": [
+        "cipher_scofield"
+      ]
+    },
+    {
+      "id": "admin_master",
+      "username": "Admin Master",
+      "email": "admin@deciphercoded.com",
+      "password": "admin@1234",
+      "role": "admin"
+    }
+  ]
+}
