@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const SOCKET_URL = "https://cipherford.onrender.com";
+
 // Get all badges for a student
 const getBadges = async (req, res) => {
   const { student_id } = req.params;
@@ -8,32 +9,31 @@ const getBadges = async (req, res) => {
   if (req.user.id !== student_id && req.user.role !== "admin") {
     return res.status(403).json({ msg: "Access denied" });
   }
-  // this is just for testing,,
+
   try {
     const result = await pool.query(
       "SELECT * FROM badges WHERE student_id=$1",
       [student_id]
     );
-
-    // Prepend only the server URL
-    const badgesWithUrl = result.rows.map((b) => ({
-      ...b,
-      file_url: `${SOCKET_URL}${b.file_url}`,
-    }));
-
-    res.json(badgesWithUrl);
+    res.json(result.rows);
   } catch (err) {
     console.error("Get badges error:", err.message);
     res.status(500).send("Server error");
   }
 };
 
-// Award new badge
+// Award new badge (as PDF)
 const awardBadge = async (req, res) => {
-  const { student_id, title, description, file_url } = req.body;
+  console.log("🛠 Incoming request body:", req.body);
+  console.log("🛠 Incoming file info:", req.file);
+
+  const { student_id, title, description } = req.body;
+  const file_url = req.file
+    ? `${SOCKET_URL}/uploads/badges/${req.file.filename}`
+    : null;
 
   // Only admin can award badges
-  if (req.user.role !== "admin") {
+  if (!req.user || req.user.role !== "admin") {
     return res.status(403).json({ msg: "Only admins can award badges" });
   }
 
@@ -44,6 +44,7 @@ const awardBadge = async (req, res) => {
       [student_id, title, description, file_url]
     );
 
+    console.log("✅ Badge awarded:", result.rows[0]);
     res.json(result.rows[0]);
   } catch (err) {
     console.error("Award badge error:", err.message);
@@ -51,20 +52,20 @@ const awardBadge = async (req, res) => {
   }
 };
 
+// Update badge
 const updateBadge = async (req, res) => {
   const { id } = req.params;
   const { title, description, file_url } = req.body;
 
-  // Only admin can update badges
-  if (req.user.role !== "admin") {
+  if (!req.user || req.user.role !== "admin") {
     return res.status(403).json({ msg: "Only admins can update badges" });
   }
 
   try {
     const result = await pool.query(
-      `UPDATE badges 
-       SET title = $1, description = $2, file_url = $3 
-       WHERE id = $4 
+      `UPDATE badges
+       SET title=$1, description=$2, file_url=$3
+       WHERE id=$4
        RETURNING *`,
       [title, description, file_url, id]
     );
@@ -80,12 +81,11 @@ const updateBadge = async (req, res) => {
   }
 };
 
-// Delete a badge
+// Delete badge
 const removeBadge = async (req, res) => {
   const { id } = req.params;
 
-  // Only admin can delete
-  if (req.user.role !== "admin") {
+  if (!req.user || req.user.role !== "admin") {
     return res.status(403).json({ msg: "Only admins can delete badges" });
   }
 
