@@ -1,0 +1,187 @@
+<div class="settings-container">
+  <h4 class="mb-4">⚙️ Settings</h4>
+
+  <!-- Profile Settings -->
+  <section class="settings-section">
+    <h5>Profile Settings</h5>
+    <form id="profile-settings-form">
+      <div class="form-group">
+        <label for="admin-username">Username</label>
+        <input type="text" id="admin-username" class="form-control" />
+      </div>
+      <!-- testing -->
+      <div class="form-group">
+        <label for="admin-email">Email</label>
+        <input type="email" id="admin-email" class="form-control" />
+      </div>
+
+      <div class="form-group">
+        <label for="admin-avatar">Profile Picture</label>
+        <input type="file" id="admin-avatar" class="form-control" />
+      </div>
+
+      <button type="submit" class="btn save-btn">Save Profile</button>
+    </form>
+  </section>
+
+  <!-- Password Change -->
+  <section class="settings-section mt-5">
+    <h5>Change Password</h5>
+    <form id="password-change-form">
+      <div class="form-group password-wrapper">
+        <label for="current-password">Current Password</label>
+        <input type="password" id="current-password" class="form-control" />
+        <span class="toggle-password">👁️</span>
+      </div>
+
+      <div class="form-group password-wrapper">
+        <label for="new-password">New Password</label>
+        <input type="password" id="new-password" class="form-control" />
+        <span class="toggle-password">👁️</span>
+      </div>
+
+      <div class="form-group password-wrapper">
+        <label for="confirm-password">Confirm New Password</label>
+        <input type="password" id="confirm-password" class="form-control" />
+        <span class="toggle-password">👁️</span>
+      </div>
+
+      <button type="submit" class="btn save-btn">Update Password</button>
+    </form>
+  </section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+  .settings-container {
+    padding: 30px;
+    max-width: 800px;
+    margin: 0 auto;
+    color: #ffffff;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .settings-container h4 {
+    font-size: 2rem;
+    margin-bottom: 25px;
+    text-align: center;
+    color: #1a9fff;
+  }
+
+  .settings-section {
+    background-color: #212f40;
+    padding: 25px 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .settings-section:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(26, 159, 255, 0.3);
+  }
+
+  .settings-section h5 {
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+    color: #1a9fff;
+    border-bottom: 1px solid #1a9fff33;
+    padding-bottom: 5px;
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+
+  .form-control {
+    width: 100%;
+    background-color: #111920;
+    border: 1px solid #2f3f50;
+    color: #ffffff;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .form-control:focus {
+    border-color: #1a9fff;
+    box-shadow: 0 0 8px rgba(26, 159, 255, 0.5);
+    outline: none;
+    background-color: #111920;
+    color: #ffffff;
+  }
+
+  .save-btn {
+    display: inline-block;
+    background-color: #1a9fff;
+    color: #ffffff;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .save-btn:hover {
+    background-color: #1580cc;
+    transform: translateY(-2px);
+  }
+
+  /* Password toggle */
+  .password-wrapper {
+    position: relative;
+  }
+
+  .toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #1a9fff;
+    font-size: 1.2rem;
+    user-select: none;
+    transition: color 0.3s ease;
+  }
+
+  .toggle-password:hover {
+    color: #1580cc;
+  }
+  .password-wrapper {
+    position: relative;
+  }
+
+  .password-wrapper .toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #1a9fff;
+    user-select: none;
+    transition: color 0.3s ease;
+  }
+
+  .password-wrapper .toggle-password:hover {
+    color: #1580cc;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .settings-container {
+      padding: 20px;
+    }
+
+    .settings-section {
+      padding: 20px 15px;
+    }
+
+    .save-btn {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>

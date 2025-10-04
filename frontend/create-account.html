@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Account</title>
+    <link rel="stylesheet" href="./create-account.css" />
+  </head>
+  <body>
+    <div class="create-account-container">
+      <p class="company-name">cipherford</p>
+      <p>
+        Have an account already?
+        <a href="login.html">Login Here</a>
+      </p>
+      <div class="user-inputs">
+        <input id="first_name" type="text" placeholder="First Name" required />
+        <input id="last_name" type="text" placeholder="Last Name" required />
+        <input id="email" type="email" placeholder="Email" required />
+        <div class="password-wrapper">
+          <input
+            id="signup-password"
+            type="password"
+            placeholder="Password"
+            required
+          />
+          <span id="toggle-password" class="toggle-password">👁️</span>
+        </div>
+
+        <input id="country" type="text" placeholder="Country" required />
+        <!-- <input type="file" id="avatar" name="avatar" accept="image/*" /> -->
+        <div id="parent-extra-fields" style="display: none">
+          <input id="wechat" type="text" placeholder="WeChat (Parents only)" />
+          <input id="child-email" type="email" placeholder="Child's Email" />
+        </div>
+        <div id="student-extra-fields" style="display: none">
+          <input
+            id="parent-email"
+            type="email"
+            placeholder="Parent's Email (optional)"
+          />
+        </div>
+        <div class="role-selection">
+          <input type="radio" id="parent" name="role" value="parent" required />
+          <label for="parent">Parent</label>
+          <input
+            type="radio"
+            id="student"
+            name="role"
+            value="student"
+            required
+          />
+          <label for="student">Student</label>
+        </div>
+      </div>
+      <div
+        id="signup-loader"
+        class="loader"
+        style="display: none; margin: 15px auto"
+      ></div>
+      <button id="create-account-btn" class="create-account-btn">
+        Create Account
+      </button>
+    </div>
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
+
+    <script>
+      // Show/hide fields based on role selection
+      document.querySelectorAll('input[name="role"]').forEach((radio) => {
+        radio.addEventListener("change", () => {
+          const parentFields = document.getElementById("parent-extra-fields");
+          const studentFields = document.getElementById("student-extra-fields");
+
+          if (document.getElementById("parent").checked) {
+            parentFields.style.display = "block";
+            studentFields.style.display = "none";
+          } else if (document.getElementById("student").checked) {
+            parentFields.style.display = "none";
+            studentFields.style.display = "block";
+          } else {
+            parentFields.style.display = "none";
+            studentFields.style.display = "none";
+          }
+        });
+      });
+      const passwordInput = document.getElementById("signup-password");
+      const togglePassword = document.getElementById("toggle-password");
+
+      togglePassword.addEventListener("click", () => {
+        if (passwordInput.type === "password") {
+          passwordInput.type = "text";
+          togglePassword.textContent = "🙈"; // optional: change icon when visible
+        } else {
+          passwordInput.type = "password";
+          togglePassword.textContent = "👁️";
+        }
+      });
+    </script>
+
+    <script type="module" src="./auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </body>
+  <!-- testing -->
+</html>

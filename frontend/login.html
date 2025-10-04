@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <link rel="stylesheet" href="./login.css" />
+  </head>
+  <body>
+    <div class="login-container">
+      <p class="company-name">cipherford</p>
+      <p>Don't have an account? <a href="create-account.html">Sign Up</a></p>
+      <div class="user-inputs">
+        <input id="login-email" type="email" placeholder="Enter Email" />
+        <div class="password-wrapper">
+          <input
+            id="signup-password"
+            type="password"
+            placeholder="Password"
+            required
+          />
+          <span id="toggle-password" class="toggle-password">👁️</span>
+        </div>
+      </div>
+      <!-- Loader -->
+      <div id="login-loader" class="loader" style="display: none"></div>
+      <button id="login-btn" class="login-btn">Login</button>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toast-container"></div>
+    <!-- testing -->
+    <script type="module" src="./login.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </body>
+</html>
+<script>
+  const passwordInput = document.getElementById("signup-password");
+  const togglePassword = document.getElementById("toggle-password");
+  togglePassword.addEventListener("click", () => {
+    if (passwordInput.type === "password") {
+      passwordInput.type = "text";
+      togglePassword.textContent = "🙈"; // icon changes to indicate visible
+    } else {
+      passwordInput.type = "password";
+      togglePassword.textContent = "👁️";
+    }
+  });
+</script>

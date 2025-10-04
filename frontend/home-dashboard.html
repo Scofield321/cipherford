@@ -1,0 +1,123 @@
+<section class="admin-dashboard">
+  <h2>Admin Dashboard</h2>
+
+  <!-- Top Stats -->
+  <div class="dashboard-cards">
+    <div class="dashboard-card">
+      <h3>Total Students</h3>
+      <p id="total-students">0</p>
+    </div>
+    <div class="dashboard-card">
+      <h3>Total Parents</h3>
+      <p id="total-parents">0</p>
+    </div>
+    <div class="dashboard-card">
+      <h3>Upcoming Sessions</h3>
+      <p id="upcoming-sessions">0</p>
+    </div>
+  </div>
+
+  <!-- Graphs -->
+  <div class="graphs">
+    <div class="graphical-stat">
+      <h3>Plan Distribution</h3>
+      <canvas id="planChart" class="dashboard-chart"></canvas>
+    </div>
+    <div class="graphical-stat">
+      <h3>Monthly Signups</h3>
+      <canvas id="monthlySignupsChart" class="dashboard-chart"></canvas>
+    </div>
+  </div>
+  <!-- testing -->
+</section>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+  /* Base Styles - Mobile First */
+  .admin-dashboard {
+    padding: 20px;
+    background-color: #0d1b2a;
+    color: #fff;
+    min-height: 100vh;
+  }
+
+  .admin-dashboard h2 {
+    text-align: center;
+    color: #1a9fff;
+    margin-bottom: 25px;
+    font-size: 1.8rem;
+  }
+
+  .dashboard-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    margin-bottom: 25px;
+  }
+
+  .dashboard-card,
+  .graphical-stat {
+    background-color: #212f40;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .dashboard-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(26, 159, 255, 0.4);
+  }
+
+  .dashboard-card h3,
+  .graphical-stat h3 {
+    color: #1a9fff;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+  }
+
+  .dashboard-card p,
+  .graphical-stat p {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  /* Graphs */
+  .graphs {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .graphical-stat canvas {
+    width: 100% !important;
+    max-width: 350px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+  }
+
+  /* Tablets and larger */
+  @media (min-width: 600px) {
+    .dashboard-cards {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .graphs {
+      flex-direction: row;
+    }
+    .graphical-stat {
+      flex: 1 1 0;
+    }
+  }
+
+  /* Desktop and larger */
+  @media (min-width: 1024px) {
+    .dashboard-cards {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .graphical-stat canvas {
+      height: 300px !important;
+    }
+  }
+</style>

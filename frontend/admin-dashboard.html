@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="./admin-dashboard.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="admin-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <h2 class="sidebar-title">cipherford</h2>
+        <nav class="sidebar-nav">
+          <a href="#" class="dashboard-link active" data-view="home-dashboard"
+            >📊 Dashboard</a
+          >
+          <a href="#" class="dashboard-link" data-view="manage-students"
+            >👨‍🎓 Manage Students</a
+          >
+          <a href="#" class="dashboard-link" data-view="manage-parents"
+            >👨‍👩‍👧 Manage Parents</a
+          >
+          <a href="#" class="dashboard-link" data-view="track-students"
+            >📈 Track Students</a
+          >
+          <a href="#" class="dashboard-link" data-view="settings"
+            >⚙️ Settings</a
+          >
+          <a href="#" class="dashboard-link" data-view="logout">🚪 Logout</a>
+        </nav>
+      </aside>
+
+      <!-- Main Layout -->
+      <div class="main-layout">
+        <!-- Top Header -->
+        <header class="admin-header">
+          <button class="menu-toggle">&#9776;</button>
+          <h1>Welcome back, <span id="admin-name">Admin</span></h1>
+          <div class="admin-profile">
+            <!-- Avatar here -->
+          </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+          <!-- Dynamic content will be injected here -->
+          <!-- Loader -->
+          <div id="home-loader" class="loader" style="display: none"></div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Logout Modal -->
+    <div id="logout-modal" class="logout-container" style="display: none">
+      <div class="logout-card">
+        <h4>Logout Confirmation</h4>
+        <p>Are you sure you want to logout of your admin dashboard?</p>
+        <div class="logout-buttons">
+          <button id="logout-cancel-btn" class="btn cancel-btn">Cancel</button>
+          <button id="logout-confirm-btn" class="btn confirm-btn">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- testing -->
+    <!-- Scripts -->
+    <script type="module" src="./dashboard-router.js"></script>
+    <script type="module" src="./admin-dashboard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const logoutLink = document.querySelector(
+          '.dashboard-link[data-view="logout"]'
+        );
+        const menuBtn = document.querySelector(".menu-toggle");
+        const sidebar = document.querySelector(".sidebar");
+        const links = document.querySelectorAll(".dashboard-link");
+        const logoutModal = document.getElementById("logout-modal");
+        const cancelBtn = document.getElementById("logout-cancel-btn");
+        const confirmBtn = document.getElementById("logout-confirm-btn");
+
+        if (!logoutLink || !logoutModal || !cancelBtn || !confirmBtn) {
+          console.error("Logout modal elements not found!");
+          return;
+        }
+
+        // Open sidebar
+        menuBtn.addEventListener("click", () => {
+          sidebar.classList.add("active");
+          menuBtn.style.display = "none";
+        });
+
+        // Close sidebar on link click (for mobile)
+        links.forEach((link) => {
+          link.addEventListener("click", () => {
+            sidebar.classList.remove("active");
+            menuBtn.style.display = "block";
+          });
+        });
+
+        window.addEventListener("click", (e) => {
+          if (
+            sidebar.classList.contains("active") &&
+            !sidebar.contains(e.target) &&
+            !menuBtn.contains(e.target)
+          ) {
+            sidebar.classList.remove("active");
+            menuBtn.style.display = "block";
+          }
+        });
+
+        // Open modal
+        logoutLink.addEventListener("click", (e) => {
+          e.preventDefault();
+          logoutModal.style.display = "flex";
+        });
+
+        // Cancel modal: hide modal
+        cancelBtn.addEventListener("click", () => {
+          logoutModal.style.display = "none";
+          const homeLink = document.querySelector(
+            '.dashboard-link[data-view="home-dashboard"]'
+          );
+          if (homeLink) homeLink.click();
+        });
+
+        // Confirm logout: remove only admin key
+        confirmBtn.addEventListener("click", () => {
+          localStorage.removeItem("loggedInAdmin");
+          window.location.href = "login.html";
+        });
+
+        // Close modal if clicked outside card
+        window.addEventListener("click", (e) => {
+          if (e.target === logoutModal) logoutModal.style.display = "none";
+        });
+      });
+    </script>
+  </body>
+</html>

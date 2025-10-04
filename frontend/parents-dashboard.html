@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parent Dashboard</title>
+    <link rel="stylesheet" href="./parents-dashboard.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </head>
+  <body>
+    <!-- Menu Button (Mobile Only) -->
+    <button class="menu-toggle">&#9776;</button>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">cipherford</div>
+      </div>
+      <nav class="sidebar-nav">
+        <ul>
+          <li><a href="#" class="active" data-section="home">Dashboard</a></li>
+          <!-- <li><a href="#" data-section="settings">Settings</a></li> -->
+          <li><a href="#" data-section="logout">Logout</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="parent-dashboard">
+      <header class="dashboard-header">
+        <div class="profile-info">
+          <span id="parent-name">Parent Name</span>
+        </div>
+      </header>
+
+      <!-- Sections -->
+      <section id="home-section" class="dashboard-section active">
+        <h2>Welcome, <span id="parent-name-card">Parent Name</span></h2>
+        <div
+          id="home-loader"
+          class="loader"
+          style="display: none; margin: 15px auto"
+        ></div>
+        <div class="parent-stats">
+          <div class="stat-card">
+            <h5>Total Sessions</h5>
+            <p id="parent-session-count">0</p>
+          </div>
+        </div>
+
+        <div class="children-cards">
+          <h3>My Children</h3>
+          <div id="children-list" class="children-list">
+            <p>No children registered yet.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="settings-section" class="dashboard-section">
+        <div class="settings-container">
+          <h4 class="mb-4">⚙️ Settings</h4>
+
+          <!-- Password Change -->
+          <section class="settings-section mt-5">
+            <h5>Change Password</h5>
+            <form id="password-change-form">
+              <div class="form-group">
+                <label for="current-password">Current Password</label>
+                <input
+                  type="password"
+                  id="current-password"
+                  class="form-control"
+                />
+              </div>
+              <div class="form-group">
+                <label for="new-password">New Password</label>
+                <input type="password" id="new-password" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label for="confirm-password">Confirm New Password</label>
+                <input
+                  type="password"
+                  id="confirm-password"
+                  class="form-control"
+                />
+              </div>
+              <button type="submit" class="btn save-btn">
+                Update Password
+              </button>
+            </form>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <!-- Logout Modal -->
+    <div id="logout-modal" class="logout-container" style="display: none">
+      <div class="logout-card">
+        <h4>Logout Confirmation</h4>
+        <p>Are you sure you want to logout?</p>
+        <div class="logout-buttons">
+          <button id="logout-cancel-btn" class="btn cancel-btn">Cancel</button>
+          <button id="logout-confirm-btn" class="btn confirm-btn">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- testing -->
+    <!-- Scripts -->
+    <script type="module" src="./parents-dashboard.js"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const menuBtn = document.querySelector(".menu-toggle");
+        const sidebar = document.querySelector(".sidebar");
+        const links = document.querySelectorAll(".sidebar-nav a");
+        const logoutModal = document.getElementById("logout-modal");
+        const cancelBtn = document.getElementById("logout-cancel-btn");
+        const confirmBtn = document.getElementById("logout-confirm-btn");
+
+        // Open Sidebar
+        menuBtn.addEventListener("click", () => {
+          sidebar.classList.add("active");
+          menuBtn.style.display = "none";
+        });
+
+        // Sidebar link click
+        links.forEach((link) => {
+          link.addEventListener("click", (e) => {
+            const section = link.dataset.section;
+            if (section === "logout") {
+              e.preventDefault();
+              logoutModal.style.display = "flex";
+            }
+            sidebar.classList.remove("active");
+            menuBtn.style.display = "block";
+          });
+        });
+
+        // Cancel logout
+        cancelBtn.addEventListener("click", () => {
+          logoutModal.style.display = "none";
+          document.querySelector('[data-section="home"]').click();
+        });
+
+        // Confirm logout
+        confirmBtn.addEventListener("click", () => {
+          // Only remove parent-specific key
+          localStorage.removeItem("loggedInParent");
+          window.location.href = "login.html";
+        });
+
+        // Optional: Click outside to close sidebar or modal
+        window.addEventListener("click", (e) => {
+          if (
+            sidebar.classList.contains("active") &&
+            !sidebar.contains(e.target) &&
+            !menuBtn.contains(e.target)
+          ) {
+            sidebar.classList.remove("active");
+            menuBtn.style.display = "block";
+          }
+
+          if (e.target === logoutModal) {
+            logoutModal.style.display = "none";
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

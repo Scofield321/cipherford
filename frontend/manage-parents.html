@@ -1,0 +1,312 @@
+<section class="manage-parents">
+  <h2>Manage Parents</h2>
+
+  <!-- 🔍 Search and Filter -->
+  <div class="search-bar">
+    <input
+      type="text"
+      id="parent-search"
+      placeholder="Search by name or email..."
+    />
+    <button class="btn btn-primary">Search</button>
+  </div>
+
+  <!-- 📋 Parents Table -->
+  <div class="table-wrapper">
+    <!-- 🔄 Loader -->
+    <div id="parents-loader" class="loader" style="display: none"></div>
+    <table class="parents-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Full Name</th>
+          <th>Email</th>
+          <th>Linked Children</th>
+          <th>Country</th>
+          <th>Sessions</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Will be populated dynamically via JS -->
+      </tbody>
+    </table>
+  </div>
+  <!-- testing -->
+  <!-- Edit Parent Modal -->
+  <div id="edit-parent-modal" class="modal" style="display: none">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h3>Edit Parent Info</h3>
+      <form id="edit-parent-form">
+        <input
+          type="text"
+          name="edit-first-name"
+          placeholder="First Name"
+          required
+        />
+        <input
+          type="text"
+          name="edit-last-name"
+          placeholder="Last Name"
+          required
+        />
+        <input type="email" name="edit-email" placeholder="Email" required />
+        <input type="text" name="edit-country" placeholder="Country" />
+        <input
+          type="number"
+          name="edit-session-count"
+          placeholder="Sessions"
+          min="0"
+        />
+        <button type="submit">Save Changes</button>
+      </form>
+    </div>
+  </div>
+</section>
+<script type="module" src="./manage-students.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+  /* ===========================
+     Mobile First Base
+  =========================== */
+  .manage-parents {
+    padding: 20px;
+    background-color: #0d1b2a;
+    color: #fff;
+  }
+
+  .manage-parents h2 {
+    font-size: 1.6rem;
+    margin-bottom: 15px;
+    color: #1a9fff;
+    text-align: center;
+  }
+  button {
+    background-color: #1a9fff;
+    border: none;
+    padding: 10px 15px;
+    margin: 2px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .search-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .search-bar input {
+    padding: 10px;
+    border: 1px solid #2f3f50;
+    border-radius: 6px;
+    background-color: #111920;
+    color: #fff;
+    width: 100%;
+  }
+
+  .btn {
+    background-color: #1a9fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+  .btn:hover {
+    background-color: #1580cc;
+    transform: translateY(-1px);
+  }
+  /* Base button style */
+  .btn-small {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: #fff;
+    min-width: 80px; /* ensures same width */
+    text-align: center;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  /* Specific actions */
+  .btn-small.edit {
+    background-color: #1a9fff; /* blue for edit */
+  }
+
+  .btn-small.edit:hover {
+    background-color: #1481e0;
+    transform: translateY(-2px);
+  }
+
+  .btn-small.delete {
+    background-color: #ff4d4f; /* red for delete */
+  }
+
+  .btn-small.delete:hover {
+    background-color: #e03b3f;
+    transform: translateY(-2px);
+  }
+
+  /* Table */
+  .table-wrapper {
+    overflow-x: auto;
+  }
+  .loader {
+    border: 5px solid #2f3f50;
+    border-top: 5px solid #1a9fff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .parents-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #212f40;
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 0.9rem;
+  }
+
+  .parents-table th,
+  .parents-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #2f3f50;
+  }
+
+  .parents-table th {
+    background-color: #1b2838;
+    color: #1a9fff;
+  }
+
+  .parents-table tbody tr:hover {
+    background-color: #1a9fff20;
+  }
+
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal-content {
+    background-color: #1b2636;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    color: #fff;
+    position: relative;
+  }
+
+  .modal-content h3 {
+    margin-bottom: 15px;
+    text-align: center;
+    color: #1a9fff;
+  }
+
+  .modal .close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+
+  #edit-parent-form input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    border: 1px solid #2f3f50;
+    background-color: #112d4e;
+    color: #fff;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+  }
+
+  #edit-parent-form button[type="submit"] {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 1rem;
+    background-color: #1a9fff;
+    border: none;
+    cursor: pointer;
+  }
+  #edit-parent-form button[type="submit"]:hover {
+    background-color: #1580cc;
+  }
+
+  /* ===========================
+     Tablets Up
+  =========================== */
+  @media (min-width: 768px) {
+    .search-bar {
+      flex-direction: row;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .search-bar input {
+      width: 250px;
+    }
+
+    .parents-table th,
+    .parents-table td {
+      padding: 12px 15px;
+    }
+
+    .modal-content {
+      max-width: 500px;
+      padding: 25px;
+    }
+
+    #edit-parent-form input {
+      font-size: 1rem;
+    }
+  }
+
+  /* ===========================
+     Desktop Up
+  =========================== */
+  @media (min-width: 1024px) {
+    .modal-content {
+      max-width: 600px;
+      padding: 30px;
+    }
+
+    .parents-table th,
+    .parents-table td {
+      padding: 15px 20px;
+      font-size: 1rem;
+    }
+  }
+</style>

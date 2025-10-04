@@ -1,0 +1,632 @@
+<section class="manage-students">
+  <h2>Manage Students</h2>
+
+  <!-- 🔍 Search and Filter -->
+  <div class="search-bar">
+    <input
+      type="text"
+      id="student-search"
+      placeholder="Search by name or email..."
+    />
+    <button class="btn btn-primary">Search</button>
+  </div>
+  <!-- testing -->
+  <!-- 📋 Student Table -->
+  <div class="table-wrapper">
+    <!-- 🔄 Loader -->
+    <div id="students-loader" class="loader" style="display: none"></div>
+    <table class="students-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Full Name</th>
+          <th>Email</th>
+          <th>Plan</th>
+          <th>Progress</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Populated via JS -->
+      </tbody>
+    </table>
+  </div>
+  <!-- testing -->
+
+  <!-- Edit Student Modal -->
+  <div id="edit-student-modal" class="modal" style="display: none">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h3>Edit Student Info</h3>
+      <form id="edit-student-form">
+        <input
+          type="text"
+          id="edit-username"
+          placeholder="Full Name"
+          required
+        />
+        <input type="number" id="edit-level" placeholder="Level" min="1" />
+        <input type="number" id="edit-points" placeholder="Points" min="0" />
+        <input
+          type="number"
+          id="edit-projects"
+          placeholder="Projects Done"
+          min="0"
+        />
+        <input
+          type="number"
+          id="edit-attendance-week"
+          placeholder="Attendance (Week)"
+          min="0"
+        />
+        <input
+          type="number"
+          id="edit-attendance-month"
+          placeholder="Attendance (Month)"
+          min="0"
+        />
+        <input
+          type="text"
+          id="edit-plan"
+          placeholder="Plan (Free / Standard / Premium)"
+        />
+
+        <!-- Upcoming Sessions -->
+        <div>
+          <label>Upcoming Sessions:</label>
+          <div id="upcoming-sessions-container" style="margin-top: 10px">
+            <!-- JS will populate session fields here -->
+          </div>
+          <button type="button" id="add-session-btn">+ Add Session</button>
+        </div>
+        <div style="margin-top: 20px">
+          <label>Award Badge:</label>
+          <input type="text" id="badge-title" placeholder="Badge Title" />
+          <input type="text" id="badge-description" placeholder="Description" />
+          <input type="file" id="badge-file" accept="image/*" />
+          <button type="button" id="award-badge-btn">🏅 Award Badge</button>
+        </div>
+        <div style="margin-top: 20px">
+          <h3>Award Certificate</h3>
+          <input type="text" id="certificate-title" placeholder="Title" />
+          <textarea
+            id="certificate-description"
+            placeholder="Description"
+          ></textarea>
+          <input type="file" id="certificate-file" accept=".pdf" />
+          <button type="button" id="award-certificate-btn" class="btn">
+            Award Certificate
+          </button>
+        </div>
+
+        <div style="margin-top: 20px">
+          <h3>Add Resource</h3>
+          <input type="text" id="resource-name" placeholder="Resource Name" />
+          <input type="file" id="resource-file" accept=".pdf" />
+          <button type="button" id="award-resource-btn" class="btn">
+            Add Resource
+          </button>
+        </div>
+
+        <button type="submit">Save Changes</button>
+      </form>
+    </div>
+  </div>
+  <!-- <div class="file-card">
+    <div class="file-card-header">
+      <span class="file-card-title">Badge Title</span>
+      <div class="file-card-buttons">
+        <button class="edit-item">✏️</button>
+        <button class="remove-badge">❌</button>
+      </div>
+    </div>
+    <div class="file-card-description">
+      This is a short description of the badge.
+    </div>
+    <div class="file-card-link"><a href="#">View File</a></div>
+  </div> -->
+</section>
+
+<script type="module" src="./manage-students.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+  /* ===========================
+   Mobile First Base
+=========================== */
+  .manage-students {
+    padding: 20px;
+    background-color: #0d1b2a;
+    color: #fff;
+  }
+
+  .manage-students h2 {
+    font-size: 1.6rem;
+    margin-bottom: 15px;
+    color: #1a9fff;
+    text-align: center;
+  }
+
+  .search-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .search-bar input {
+    padding: 10px;
+    border: 1px solid #2f3f50;
+    border-radius: 6px;
+    background-color: #111920;
+    color: #fff;
+    width: 100%;
+  }
+  button {
+    background-color: #1a9fff;
+    border: none;
+    padding: 10px 15px;
+    margin: 2px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .btn {
+    background-color: #1a9fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+  .btn:hover {
+    background-color: #1580cc;
+    transform: translateY(-1px);
+  }
+
+  /* Table */
+  .table-wrapper {
+    overflow-x: auto;
+  }
+  .loader {
+    border: 5px solid #2f3f50;
+    border-top: 5px solid #1a9fff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .students-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #212f40;
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 0.9rem;
+  }
+
+  .students-table th,
+  .students-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #2f3f50;
+  }
+
+  .students-table th {
+    background-color: #1b2838;
+    color: #1a9fff;
+  }
+
+  .students-table tbody tr:hover {
+    background-color: #1a9fff20;
+  }
+  .students-table.loading {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  /* Base button style */
+  .btn-small {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: #fff;
+    min-width: 80px; /* ensures same width */
+    text-align: center;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  /* Specific actions */
+  .btn-small.edit {
+    background-color: #1a9fff; /* blue for edit */
+  }
+
+  .btn-small.edit:hover {
+    background-color: #1481e0;
+    transform: translateY(-2px);
+  }
+
+  .btn-small.delete {
+    background-color: #ff4d4f; /* red for delete */
+  }
+
+  .btn-small.delete:hover {
+    background-color: #e03b3f;
+    transform: translateY(-2px);
+  }
+
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal-content {
+    background-color: #1b2636;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    color: #fff;
+    position: relative;
+  }
+
+  .modal-content h3 {
+    margin-bottom: 15px;
+    text-align: center;
+    color: #1a9fff;
+  }
+
+  .modal .close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+
+  #edit-student-form input,
+  #edit-student-form textarea {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    border: 1px solid #2f3f50;
+    background-color: #112d4e;
+    color: #fff;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+  }
+
+  #edit-student-form button[type="submit"] {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 1rem;
+    background-color: #1a9fff;
+    border: none;
+    cursor: pointer;
+  }
+  #edit-student-form button[type="submit"]:hover {
+    background-color: #1580cc;
+  }
+
+  /* Session / Badge / Certificate Buttons */
+  .upcoming-sessions,
+  .badge-section,
+  .certificate-section,
+  .resource-section {
+    margin-bottom: 15px;
+  }
+
+  #add-session-btn,
+  #award-badge-btn,
+  #award-certificate-btn,
+  #award-resource-btn {
+    margin-top: 5px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+
+  /* Upcoming session flex for mobile */
+  .upcoming-session-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .remove-session-btn {
+    background-color: #ff4d4d;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+  }
+  .remove-session-btn:hover {
+    background-color: #cc0000;
+  }
+  /* Badge / Certificate / Resource Containers */
+  #edit-student-modal #badge-list,
+  #edit-student-modal #certificate-list,
+  #edit-student-modal #resource-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  /* Individual items */
+  #edit-student-modal #badge-list > div,
+  #edit-student-modal #certificate-list > div,
+  #edit-student-modal #resource-list > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 150px;
+    max-width: 220px;
+    padding: 6px 10px;
+    background: #f9f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+  }
+
+  #edit-student-modal #badge-list > div:hover,
+  #edit-student-modal #certificate-list > div:hover,
+  #edit-student-modal #resource-list > div:hover {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    background: #f4f5f7;
+  }
+
+  /* File title / name */
+  #edit-student-modal #badge-list > div span,
+  #edit-student-modal #certificate-list > div a,
+  #edit-student-modal #resource-list > div a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    margin-right: 8px;
+    color: #333;
+    text-decoration: none;
+  }
+
+  #edit-student-modal #certificate-list > div a:hover,
+  #edit-student-modal #resource-list > div a:hover {
+    text-decoration: underline;
+  }
+
+  /* Delete button */
+  #edit-student-modal #badge-list > div button,
+  #edit-student-modal #certificate-list > div button,
+  #edit-student-modal #resource-list > div button {
+    background: #ff4d4f;
+    border: none;
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #edit-student-modal #badge-list > div button:hover,
+  #edit-student-modal #certificate-list > div button:hover,
+  #edit-student-modal #resource-list > div button:hover {
+    background: #d9363e;
+  }
+
+  /* Modal File Items Styling */
+  #badge-list div,
+  #certificate-list div,
+  #resource-list div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease-in-out;
+  }
+
+  #badge-list div:hover,
+  #certificate-list div:hover,
+  #resource-list div:hover {
+    background-color: #fff7e6;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .item-title {
+    flex: 1;
+    font-weight: 500;
+    color: #333;
+    text-decoration: none;
+  }
+
+  .edit-item,
+  .remove-badge,
+  .remove-cert,
+  .remove-resource {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    transition: transform 0.2s ease;
+  }
+
+  .edit-item:hover,
+  .remove-badge:hover,
+  .remove-cert:hover,
+  .remove-resource:hover {
+    transform: scale(1.2);
+  }
+
+  .edit-form {
+    margin-top: 6px;
+    padding: 8px;
+    background-color: #fff;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .edit-form input[type="text"],
+  .edit-form input[type="file"] {
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    width: 100%;
+  }
+
+  .edit-form button {
+    padding: 6px 10px;
+    background-color: #ff4d4f;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+  }
+
+  .edit-form button:hover {
+    background-color: #d9363e;
+  }
+  .file-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    background-color: #fafafa;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+  }
+
+  .file-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .file-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .file-card-title {
+    font-weight: 600;
+    font-size: 16px;
+    color: #333;
+  }
+
+  .file-card-buttons button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    margin-left: 6px;
+    transition: color 0.2s;
+  }
+
+  .file-card-buttons button:hover {
+    color: #ff4d4f;
+  }
+
+  .file-card-description {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.4;
+  }
+
+  .file-card-link a {
+    font-size: 14px;
+    color: #1890ff;
+    text-decoration: none;
+  }
+
+  .file-card-link a:hover {
+    text-decoration: underline;
+  }
+
+  /* ===========================
+   Tablets Up
+=========================== */
+  @media (min-width: 768px) {
+    .search-bar {
+      flex-direction: row;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .search-bar input {
+      width: 250px;
+    }
+
+    .students-table th,
+    .students-table td {
+      padding: 12px 15px;
+    }
+
+    .modal-content {
+      max-width: 500px;
+      padding: 25px;
+    }
+
+    #edit-student-form input,
+    #edit-student-form textarea {
+      font-size: 1rem;
+    }
+  }
+
+  /* ===========================
+   Desktop Up
+=========================== */
+  @media (min-width: 1024px) {
+    .modal-content {
+      max-width: 600px;
+      padding: 30px;
+    }
+
+    .students-table th,
+    .students-table td {
+      padding: 15px 20px;
+      font-size: 1rem;
+    }
+  }
+</style>
