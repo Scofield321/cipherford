@@ -376,9 +376,9 @@ async function openEditModal(student) {
       const titleHTML =
         type === "badge"
           ? `<span class="item-title">${item.title}</span>`
-          : `<a href="${item.file_url}" target="_blank" class="item-title">${
-              item.title || item.name
-            }</a>`;
+          : type === "resource"
+          ? `<a href="${item.file_url}" target="_blank" class="item-title">${item.resource_name}</a>`
+          : `<a href="${item.file_url}" target="_blank" class="item-title">${item.title}</a>`;
       div.innerHTML = `
         ${titleHTML}
         <button type="button" class="edit-item">✏️</button>
