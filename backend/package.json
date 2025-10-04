@@ -1,0 +1,39 @@
+{
+  "name": "cipherford",
+  "version": "1.0.0",
+  "description": "Parents-students manager",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server",
+    "dev": "nodemon server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Scofield321/cipherford.git"
+  },
+  "author": "Cipher",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Scofield321/cipherford/issues"
+  },
+  "homepage": "https://github.com/Scofield321/cipherford#readme",
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.6",
+    "pg": "^8.16.3",
+    "socket.io": "^4.8.1",
+    "sweetalert2": "^11.23.0",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "keywords": []
+}
