@@ -14,7 +14,6 @@ const getResources = async (req, res) => {
     res.status(500).send("Server error");
   }
 };
-// this is just for testing
 // Create new Resource
 const createResource = async (req, res) => {
   const { student_id, resource_name } = req.body;
@@ -25,8 +24,10 @@ const createResource = async (req, res) => {
   }
 
   // File URL to store in DB
-  const file_url = `${SOCKET_URL}/uploads/resources/${req.file.filename}`;
-
+  // const file_url = `${SOCKET_URL}/uploads/resources/${req.file.filename}`;
+  const file_url = req.file
+    ? `${SOCKET_URL}/uploads/resources/${req.file.filename}`
+    : null;
   try {
     const result = await pool.query(
       "INSERT INTO resources (student_id, resource_name, file_url) VALUES ($1, $2, $3) RETURNING *",

@@ -22,4 +22,3 @@ router.put("/:id", auth, updateResource);
 router.delete("/:id", auth, deleteResource);
 
 module.exports = router;
-// this is just for testing

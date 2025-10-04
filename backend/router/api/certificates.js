@@ -19,4 +19,3 @@ router.put("/:id", auth, updateCertificate);
 router.delete("/:id", auth, revokeCertificate);
 
 module.exports = router;
-// testing
