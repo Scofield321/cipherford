@@ -21,17 +21,10 @@ const issueCertificate = async (req, res) => {
 
   const { student_id, title, description } = req.body;
 
-  // Log extracted values
-  console.log("🛠 Extracted student_id:", student_id);
-  console.log("🛠 Extracted title:", title);
-  console.log("🛠 Extracted description:", description);
-
   const file_url = req.file
     ? `${SOCKET_URL}/uploads/certificates/${req.file.filename}`
     : null;
 
-  console.log("🛠 Computed file_url:", file_url);
-  // testing
   // Restrict to admin only
   if (!req.user) {
     console.log("❌ No user info in request");
