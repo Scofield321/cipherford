@@ -52,11 +52,7 @@ export async function fetchAndRenderBadges() {
       icon.addEventListener("click", () => {
         const fileUrl = icon.dataset.url;
         modalFrame.src = fileUrl;
-        const filename = imgUrl.split("/").pop();
-
-        // Set modal image
-        modalImg.src = imgUrl;
-        modalImg.alt = altText;
+        const filename = fileUrl.split("/").pop();
 
         // Set download button using the /download route
         downloadBtn.href = `${SOCKET_URL}/uploads/badges/${filename}/download`;
