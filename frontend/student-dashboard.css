@@ -235,7 +235,7 @@ h2 {
   border: 2px solid #1a9fff;
 }
 
-#badge-modal .download-btn,
+#badge-modal .badge-download-btn,
 #certificate-modal .certificate-download-btn,
 #resource-modal .resource-download-btn {
   display: inline-block;
@@ -249,7 +249,7 @@ h2 {
   transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-#badge-modal .download-btn:hover,
+#badge-modal .badge-download-btn:hover,
 #certificate-modal .certificate-download-btn:hover,
 #resource-modal .resource-download-btn:hover,
 .confirm-btn:hover {
