@@ -1,78 +1,32 @@
 const pool = require("../config/db");
 const supabase = require("../config/superbase");
-// const path = require("path");
 const fs = require("fs");
-const SOCKET_URL = "https://cipherford.onrender.com";
-// Get all certificates for a student
+const path = require("path");
+
+// -------------------------
+// GET Certificates for a student
+// -------------------------
 const getCertificates = async (req, res) => {
   const { student_id } = req.params;
-
-  if (!student_id) {
-    return res.status(400).json({ msg: "student_id is required" });
-  }
-
   try {
-    const { rows } = await pool.query(
+    const result = await pool.query(
       "SELECT * FROM certificates WHERE student_id=$1",
       [student_id]
     );
-
-    if (rows.length === 0) {
-      return res
-        .status(404)
-        .json({ msg: "No certificates found for this student" });
-    }
-
-    res.json(rows);
+    res.json(result.rows);
   } catch (err) {
     console.error("Get certificates error:", err.message);
     res.status(500).json({ msg: "Server error" });
   }
 };
 
-// Issue new Certificate
-// const issueCertificate = async (req, res) => {
-//   console.log("🛠 Incoming request body:", req.body);
-//   console.log("🛠 Incoming file info:", req.file);
-
-//   const { student_id, title, description } = req.body;
-
-//   const file_url = req.file
-//     ? `${SOCKET_URL}/uploads/certificates/${req.file.filename}`
-//     : null;
-
-//   // Restrict to admin only
-//   if (!req.user) {
-//     console.log("❌ No user info in request");
-//     return res.status(401).json({ msg: "User not authenticated" });
-//   }
-
-//   if (req.user.role !== "admin") {
-//     console.log("❌ Unauthorized user role:", req.user.role);
-//     return res.status(403).json({ msg: "Only admins can issue certificates" });
-//   }
-
-//   try {
-//     const result = await pool.query(
-//       `INSERT INTO certificates (student_id, title, description, file_url)
-//        VALUES ($1, $2, $3, $4) RETURNING *`,
-//       [student_id, title, description, file_url]
-//     );
-
-//     console.log("✅ Insert result:", result.rows[0]);
-//     res.json(result.rows[0]);
-//   } catch (err) {
-//     console.error("Issue certificate error:", err.message);
-//     res.status(500).send("Server error");
-//   }
-// };;
-
+// -------------------------
+// ISSUE Certificate
+// -------------------------
 const issueCertificate = async (req, res) => {
   const { student_id, title, description } = req.body;
 
-  // Restrict to admin only
   if (!req.user) return res.status(401).json({ msg: "User not authenticated" });
-
   if (req.user.role !== "admin")
     return res.status(403).json({ msg: "Only admins can issue certificates" });
 
@@ -80,13 +34,16 @@ const issueCertificate = async (req, res) => {
 
   try {
     if (req.file) {
-      const filePath = req.file.path; // local temp path
+      const filePath = req.file.path;
       const fileName = `${Date.now()}-${req.file.originalname}`;
 
-      // 1️⃣ Upload file to Supabase Storage
-      const { data, error: uploadError } = await supabase.storage
+      // Read file into buffer
+      const fileData = fs.readFileSync(filePath);
+
+      // Upload to Supabase v1
+      const { error: uploadError } = await supabase.storage
         .from("student-files")
-        .upload(fileName, fs.createReadStream(filePath), {
+        .upload(fileName, fileData, {
           cacheControl: "3600",
           upsert: false,
           contentType: "application/pdf",
@@ -94,7 +51,7 @@ const issueCertificate = async (req, res) => {
 
       if (uploadError) throw uploadError;
 
-      // 2️⃣ Get public URL for the uploaded file
+      // Get public URL
       const { publicURL, error: urlError } = supabase.storage
         .from("student-files")
         .getPublicUrl(fileName);
@@ -103,11 +60,10 @@ const issueCertificate = async (req, res) => {
 
       file_url = publicURL;
 
-      // 3️⃣ Delete local temp file
+      // Delete local temp file
       fs.unlinkSync(filePath);
     }
 
-    // 4️⃣ Save certificate record in DB
     const result = await pool.query(
       `INSERT INTO certificates (student_id, title, description, file_url) 
        VALUES ($1, $2, $3, $4) RETURNING *`,
@@ -121,48 +77,18 @@ const issueCertificate = async (req, res) => {
   }
 };
 
-// testing issues
-
-// const updateCertificate = async (req, res) => {
-//   const { id } = req.params;
-//   const { title, description, file_url } = req.body;
-
-//   // Only admin can update certificates
-//   if (req.user.role !== "admin") {
-//     return res.status(403).json({ msg: "Only admins can update certificates" });
-//   }
-
-//   try {
-//     const result = await pool.query(
-//       `UPDATE certificates
-//        SET title = $1, description = $2, file_url = $3
-//        WHERE id = $4
-//        RETURNING *`,
-//       [title, description, file_url, id]
-//     );
-
-//     if (result.rows.length === 0) {
-//       return res.status(404).json({ msg: "Certificate not found" });
-//     }
-
-//     res.json(result.rows[0]);
-//   } catch (err) {
-//     console.error("Update certificate error:", err.message);
-//     res.status(500).send("Server error");
-//   }
-// };
-
+// -------------------------
+// UPDATE Certificate
+// -------------------------
 const updateCertificate = async (req, res) => {
   const { id } = req.params;
   const { title, description } = req.body;
 
-  // Only admin can update certificates
   if (!req.user || req.user.role !== "admin") {
     return res.status(403).json({ msg: "Only admins can update certificates" });
   }
 
   try {
-    // 1️⃣ Fetch existing certificate
     const { rows } = await pool.query(
       "SELECT * FROM certificates WHERE id=$1",
       [id]
@@ -171,43 +97,38 @@ const updateCertificate = async (req, res) => {
       return res.status(404).json({ msg: "Certificate not found" });
 
     const certificate = rows[0];
-    let file_url = certificate.file_url; // Keep old URL by default
+    let file_url = certificate.file_url;
 
-    // 2️⃣ Handle new file upload
     if (req.file) {
       const filePath = req.file.path;
       const fileName = `${Date.now()}-${req.file.originalname}`;
+      const fileData = fs.readFileSync(filePath);
 
-      // Upload new file to Supabase
+      // Upload new file
       const { error: uploadError } = await supabase.storage
         .from("student-files")
-        .upload(fileName, fs.createReadStream(filePath), {
+        .upload(fileName, fileData, {
           cacheControl: "3600",
           upsert: false,
           contentType: "application/pdf",
         });
+
       if (uploadError) throw uploadError;
 
-      // Get public URL for the new file
-      const { publicURL } = supabase.storage
+      const { publicURL, error: urlError } = supabase.storage
         .from("student-files")
         .getPublicUrl(fileName);
+
+      if (urlError) throw urlError;
+
       file_url = publicURL;
 
-      // Delete local temp file safely
-      try {
-        fs.unlinkSync(filePath);
-      } catch (err) {
-        console.warn("Failed to delete local temp file:", err.message);
-      }
+      fs.unlinkSync(filePath);
 
-      // Delete old file from Supabase if exists
+      // Delete old file if exists
       if (certificate.file_url) {
         try {
-          const oldFileName = certificate.file_url
-            .split("/")
-            .pop()
-            .split("?")[0];
+          const oldFileName = certificate.file_url.split("/").pop();
           await supabase.storage.from("student-files").remove([oldFileName]);
         } catch (err) {
           console.warn("Failed to delete old file from Supabase:", err.message);
@@ -215,12 +136,10 @@ const updateCertificate = async (req, res) => {
       }
     }
 
-    // 3️⃣ Update DB record
     const result = await pool.query(
       `UPDATE certificates
        SET title=$1, description=$2, file_url=$3
-       WHERE id=$4
-       RETURNING *`,
+       WHERE id=$4 RETURNING *`,
       [title, description, file_url, id]
     );
 
@@ -231,28 +150,13 @@ const updateCertificate = async (req, res) => {
   }
 };
 
-// Delete Certificate
-// const revokeCertificate = async (req, res) => {
-//   const { id } = req.params;
-//   try {
-//     await pool.query("DELETE FROM certificates WHERE id=$1", [id]);
-//     res.json({ msg: "Certificate deleted" });
-//   } catch (err) {
-//     console.error(err.message);
-//     res.status(500).send("Server error");
-//   }
-// };
-
+// -------------------------
+// DELETE Certificate
+// -------------------------
 const revokeCertificate = async (req, res) => {
   const { id } = req.params;
 
-  // Only admin can revoke certificates
-  if (!req.user || req.user.role !== "admin") {
-    return res.status(403).json({ msg: "Only admins can revoke certificates" });
-  }
-
   try {
-    // 1️⃣ Get existing certificate
     const { rows } = await pool.query(
       "SELECT * FROM certificates WHERE id=$1",
       [id]
@@ -262,22 +166,18 @@ const revokeCertificate = async (req, res) => {
 
     const certificate = rows[0];
 
-    // 2️⃣ Delete the file from Supabase if it exists
     if (certificate.file_url) {
       try {
-        const fileName = certificate.file_url.split("/").pop().split("?")[0]; // handle query params
+        const fileName = certificate.file_url.split("/").pop();
         const { error } = await supabase.storage
           .from("student-files")
           .remove([fileName]);
-
-        if (error)
-          console.warn("Failed to delete file from Supabase:", error.message);
+        if (error) console.warn("Failed to delete file:", error.message);
       } catch (err) {
         console.warn("Error deleting file from Supabase:", err.message);
       }
     }
 
-    // 3️⃣ Delete the DB record
     await pool.query("DELETE FROM certificates WHERE id=$1", [id]);
 
     res.json({ msg: "Certificate deleted successfully" });
