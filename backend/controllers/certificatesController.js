@@ -82,10 +82,13 @@ const issueCertificate = async (req, res) => {
       const filePath = req.file.path; // Local temp path
       const fileName = `${Date.now()}-${req.file.originalname}`;
 
-      // Upload file to Supabase Storage
+      // Read file into buffer
+      const fileBuffer = fs.readFileSync(filePath);
+
+      // Upload to Supabase
       const { data, error } = await supabase.storage
         .from("student-files")
-        .upload(fileName, fs.createReadStream(filePath), {
+        .upload(fileName, fileBuffer, {
           cacheControl: "3600",
           upsert: false,
           contentType: "application/pdf",
@@ -93,18 +96,20 @@ const issueCertificate = async (req, res) => {
 
       if (error) throw error;
 
-      // Get public URL (v1 uses publicURL)
-      const { publicURL } = supabase.storage
+      // Get public URL
+      const { publicUrl, error: urlError } = supabase.storage
         .from("student-files")
         .getPublicUrl(fileName);
 
-      file_url = publicURL;
+      if (urlError) throw urlError;
 
-      // Delete local temp file
+      file_url = publicUrl;
+
+      // Delete local file
       fs.unlinkSync(filePath);
     }
 
-    // Save certificate record in PostgreSQL
+    // Save certificate record in DB
     const result = await pool.query(
       `INSERT INTO certificates (student_id, title, description, file_url) 
        VALUES ($1, $2, $3, $4) RETURNING *`,
