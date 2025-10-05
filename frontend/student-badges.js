@@ -43,16 +43,16 @@ export async function fetchAndRenderBadges() {
 
     // Modal elements
     const modal = document.getElementById("badge-modal");
-    const modalImg = document.getElementById("badge-modal-image");
+    const modalFrame = document.getElementById("badge-modal-frame");
     const downloadBtn = document.getElementById("badge-modal-download");
     const closeBtn = document.getElementById("badge-modal-close");
 
     // Handle click on badge image
-    document.querySelectorAll(".badge-clickable").forEach((img) => {
-      img.addEventListener("click", () => {
-        const imgUrl = img.src;
-        const altText = img.alt;
-        const filename = imgUrl.split("/").pop(); // Extract filename
+    document.querySelectorAll(".badge-clickable").forEach((icon) => {
+      icon.addEventListener("click", () => {
+        const fileUrl = icon.dataset.url;
+        modalFrame.src = fileUrl;
+        const filename = imgUrl.split("/").pop();
 
         // Set modal image
         modalImg.src = imgUrl;
@@ -60,10 +60,7 @@ export async function fetchAndRenderBadges() {
 
         // Set download button using the /download route
         downloadBtn.href = `${SOCKET_URL}/uploads/badges/${filename}/download`;
-        downloadBtn.setAttribute(
-          "download",
-          `${altText}${filename.substring(filename.lastIndexOf("."))}`
-        );
+        downloadBtn.download = `${icon.alt}.pdf`;
 
         // Show modal
         modal.style.display = "flex";
@@ -73,12 +70,14 @@ export async function fetchAndRenderBadges() {
     // Close modal on X click
     closeBtn.addEventListener("click", () => {
       modal.style.display = "none";
+      modalFrame.src = "";
     });
 
     // Close modal on outside click
     modal.addEventListener("click", (e) => {
       if (e.target === modal) {
         modal.style.display = "none";
+        modalFrame.src = "";
       }
     });
   } catch (err) {

@@ -214,7 +214,7 @@ h2 {
   overflow-y: auto;
 }
 
-#badge-modal .modal-content,
+#badge-modal .badges-content,
 #certificate-modal .certificates-content,
 #resource-modal .resource-content {
   background-color: #1b2838;
@@ -257,7 +257,7 @@ h2 {
   transform: translateY(-2px);
 }
 
-#badge-modal .close-btn,
+#badge-modal .badges-modal-close,
 #certificate-modal .certificates-modal-close,
 #resource-modal .resource-modal-close {
   position: absolute;
@@ -274,7 +274,7 @@ h2 {
   text-align: center;
 }
 
-#badge-modal .close-btn:hover,
+#badge-modal .badges-modal-close:hover,
 #certificate-modal .certificates-modal-close:hover,
 #resource-modal .resource-modal-close:hover {
   background-color: #777f8e;
