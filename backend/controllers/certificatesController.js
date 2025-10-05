@@ -72,6 +72,7 @@ const issueCertificate = async (req, res) => {
 
   // Restrict to admin only
   if (!req.user) return res.status(401).json({ msg: "User not authenticated" });
+
   if (req.user.role !== "admin")
     return res.status(403).json({ msg: "Only admins can issue certificates" });
 
@@ -79,37 +80,34 @@ const issueCertificate = async (req, res) => {
 
   try {
     if (req.file) {
-      const filePath = req.file.path; // Local temp path
+      const filePath = req.file.path; // local temp path
       const fileName = `${Date.now()}-${req.file.originalname}`;
 
-      // Read file into buffer
-      const fileBuffer = fs.readFileSync(filePath);
-
-      // Upload to Supabase
-      const { data, error } = await supabase.storage
+      // 1️⃣ Upload file to Supabase Storage
+      const { data, error: uploadError } = await supabase.storage
         .from("student-files")
-        .upload(fileName, fileBuffer, {
+        .upload(fileName, fs.createReadStream(filePath), {
           cacheControl: "3600",
           upsert: false,
           contentType: "application/pdf",
         });
 
-      if (error) throw error;
+      if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { publicUrl, error: urlError } = supabase.storage
+      // 2️⃣ Get public URL for the uploaded file
+      const { publicURL, error: urlError } = supabase.storage
         .from("student-files")
         .getPublicUrl(fileName);
 
       if (urlError) throw urlError;
 
-      file_url = publicUrl;
+      file_url = publicURL;
 
-      // Delete local file
+      // 3️⃣ Delete local temp file
       fs.unlinkSync(filePath);
     }
 
-    // Save certificate record in DB
+    // 4️⃣ Save certificate record in DB
     const result = await pool.query(
       `INSERT INTO certificates (student_id, title, description, file_url) 
        VALUES ($1, $2, $3, $4) RETURNING *`,
