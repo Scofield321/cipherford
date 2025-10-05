@@ -52,11 +52,8 @@ export async function fetchAndRenderCertificates() {
         const fileUrl = icon.dataset.url;
         modalFrame.src = fileUrl;
 
-        // Extract filename
-        const filename = fileUrl.split("/").pop();
-
-        // Forced download route
-        downloadBtn.href = `${SOCKET_URL}/uploads/certificates/${filename}/download`;
+        // Use the Supabase public URL for download
+        downloadBtn.href = fileUrl;
         downloadBtn.download = `${icon.alt}.pdf`;
 
         modal.style.display = "flex";

@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
+const pool = require("./config/db");
 
 dotenv.config();
 const app = express();
@@ -60,17 +61,86 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // -------------------------
 // Download routes (unchanged)
 // -------------------------
-const downloadFile = (folder) => (req, res) => {
-  const filePath = path.join(__dirname, "uploads", folder, req.params.filename);
-  res.download(filePath, req.params.filename);
-};
+// const downloadFile = (folder) => (req, res) => {
+//   const filePath = path.join(__dirname, "uploads", folder, req.params.filename);
+//   res.download(filePath, req.params.filename);
+// };
 
-app.get("/uploads/badges/:filename/download", downloadFile("badges"));
-app.get(
-  "/uploads/certificates/:filename/download",
-  downloadFile("certificates")
-);
-app.get("/uploads/resources/:filename/download", downloadFile("resources"));
+// -------------------------
+// Download certificate
+// -------------------------
+app.get("/api/certificates/:id/download", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rows } = await pool.query(
+      "SELECT file_url, title FROM certificates WHERE id=$1",
+      [id]
+    );
+    if (!rows.length)
+      return res.status(404).json({ msg: "Certificate not found" });
+
+    const { file_url, title } = rows[0];
+    if (!file_url) return res.status(404).json({ msg: "No file associated" });
+
+    res.setHeader("Content-Disposition", `attachment; filename="${title}.pdf"`);
+    res.redirect(file_url);
+  } catch (err) {
+    console.error("Download certificate error:", err.message);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
+// -------------------------
+// Download badge
+// -------------------------
+app.get("/api/badges/:id/download", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rows } = await pool.query(
+      "SELECT file_url, title FROM badges WHERE id=$1",
+      [id]
+    );
+    if (!rows.length) return res.status(404).json({ msg: "Badge not found" });
+
+    const { file_url, title } = rows[0];
+    if (!file_url) return res.status(404).json({ msg: "No file associated" });
+
+    res.setHeader("Content-Disposition", `attachment; filename="${title}.png"`);
+    res.redirect(file_url);
+  } catch (err) {
+    console.error("Download badge error:", err.message);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
+// -------------------------
+// Download resource
+// -------------------------
+app.get("/api/resources/:id/download", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rows } = await pool.query(
+      "SELECT file_url, title FROM resources WHERE id=$1",
+      [id]
+    );
+    if (!rows.length)
+      return res.status(404).json({ msg: "Resource not found" });
+
+    const { file_url, title } = rows[0];
+    if (!file_url) return res.status(404).json({ msg: "No file associated" });
+
+    // Use original file extension if stored
+    const ext = path.extname(file_url) || ".pdf";
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${title}${ext}"`
+    );
+    res.redirect(file_url);
+  } catch (err) {
+    console.error("Download resource error:", err.message);
+    res.status(500).json({ msg: err.message });
+  }
+});
 
 // -------------------------
 // Root test route
