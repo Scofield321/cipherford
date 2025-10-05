@@ -33,6 +33,7 @@ export async function fetchAndRenderBadges() {
             <img class="badge-clickable" 
             src="https://cdn-icons-png.flaticon.com/512/337/337946.png" 
                  alt="${badge.title}" 
+                 data-url="${badge.file_url}" 
                  style="width: 40px; height: 40px; cursor: pointer;" />
           </td>
           <td>${new Date(badge.awarded_at).toLocaleString()}</td>
