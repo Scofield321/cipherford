@@ -31,7 +31,7 @@ export async function fetchAndRenderBadges() {
           <td>${badge.description}</td>
           <td>
             <img class="badge-clickable" 
-                 src="${badge.file_url}" 
+            src="https://cdn-icons-png.flaticon.com/512/337/337946.png" 
                  alt="${badge.title}" 
                  style="width: 40px; height: 40px; cursor: pointer;" />
           </td>
