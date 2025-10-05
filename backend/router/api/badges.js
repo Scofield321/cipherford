@@ -9,9 +9,9 @@ const {
   updateBadge,
   removeBadge,
 } = require("../../controllers/badgesController");
-t;
 router.get("/:student_id", auth, getBadges);
 router.post("/", auth, uploadBadge.single("file"), awardBadge);
 router.put("/:id", auth, updateBadge);
 router.delete("/:id", auth, removeBadge);
+
 module.exports = router;
