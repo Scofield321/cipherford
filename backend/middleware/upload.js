@@ -24,13 +24,12 @@ const createStorage = (folder, allowedTypes) =>
   });
 
 // Export specific uploader
-const uploadBadge = createStorage("badges", /\.(jpg|jpeg|png)$/);
-const uploadCertificate = createStorage("certificates", /\.pdf$/);
+const uploadBadge = createStorage("badges", /\.pdf$/i);
+const uploadCertificate = createStorage("certificates", /\.pdf$/i);
 const uploadResource = createStorage(
   "resources",
   /\.(pdf|doc|docx|ppt|pptx|xls|xlsx)$/i
-); // ✅ New for resources
-
+);
 module.exports = {
   uploadBadge,
   uploadCertificate,
