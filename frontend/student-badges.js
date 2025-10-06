@@ -53,13 +53,11 @@ export async function fetchAndRenderBadges() {
       icon.addEventListener("click", () => {
         const fileUrl = icon.dataset.url;
         modalFrame.src = fileUrl;
-        const filename = fileUrl.split("/").pop();
 
-        // Set download button using the /download route
-        downloadBtn.href = `${SOCKET_URL}/uploads/badges/${filename}/download`;
+        // Use the Supabase public URL for download
+        downloadBtn.href = fileUrl;
         downloadBtn.download = `${icon.alt}.pdf`;
 
-        // Show modal
         modal.style.display = "flex";
       });
     });

@@ -49,12 +49,12 @@ export async function fetchAndRenderResources() {
     document.querySelectorAll(".resource-clickable").forEach((icon) => {
       icon.addEventListener("click", () => {
         const fileUrl = icon.dataset.url;
-        const filename = fileUrl.split("/").pop(); // get filename from URL
-        const downloadUrl = `${SOCKET_URL}/uploads/resources/${filename}/download`;
+        modalFrame.src = fileUrl;
 
-        modalFrame.src = fileUrl; // preview stays normal
-        downloadBtn.href = downloadUrl; // force download
-        downloadBtn.download = filename;
+        // Use the Supabase public URL for download
+        downloadBtn.href = fileUrl;
+        downloadBtn.download = `${icon.alt}.pdf`;
+
         modal.style.display = "flex";
       });
     });

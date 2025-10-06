@@ -59,14 +59,6 @@ app.use(
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // -------------------------
-// Download routes (unchanged)
-// -------------------------
-// const downloadFile = (folder) => (req, res) => {
-//   const filePath = path.join(__dirname, "uploads", folder, req.params.filename);
-//   res.download(filePath, req.params.filename);
-// };
-
-// -------------------------
 // Download certificate
 // -------------------------
 app.get("/api/certificates/:id/download", async (req, res) => {
@@ -201,6 +193,3 @@ app.set("io", io);
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-
-// YLXMRZMHEFERC2ZZV9R6GCGL (SENDGRID)
-// testing
