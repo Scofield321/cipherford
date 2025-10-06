@@ -217,7 +217,10 @@ async function loadStudentsTable() {
 
     tbody.querySelectorAll(".edit").forEach((btn) => {
       btn.onclick = async () => {
-        const student = students.find((s) => s.id === btn.dataset.id);
+        // convert the id to string for better comparison
+        const student = students.find((s) => String(s.id) === btn.dataset.id);
+        if (!student)
+          return console.error("Student not found for ID:", btn.dataset.id);
         await openEditModal(student);
       };
     });
