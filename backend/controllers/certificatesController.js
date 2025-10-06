@@ -1,7 +1,6 @@
 const pool = require("../config/db");
 const supabase = require("../config/superbase");
 const fs = require("fs");
-const path = require("path");
 
 // -------------------------
 // GET Certificates for a student

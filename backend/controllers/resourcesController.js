@@ -2,10 +2,8 @@ const pool = require("../config/db");
 const supabase = require("../config/superbase");
 const fs = require("fs");
 
-// 🔽 Get all resources for a student
 const getResources = async (req, res) => {
   const { student_id } = req.params;
-
   try {
     const result = await pool.query(
       "SELECT * FROM resources WHERE student_id=$1",
@@ -14,118 +12,145 @@ const getResources = async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error("Get resources error:", err.message);
-    res.status(500).send("Server error");
+    res.status(500).json({ msg: "Server error" });
   }
 };
 
-// 🔼 Create new Resource (PDF)
 const createResource = async (req, res) => {
   const { student_id, resource_name } = req.body;
 
-  if (!req.file) {
-    return res.status(400).json({ error: "Resource file is required" });
+  if (!req.user || req.user.role !== "admin") {
+    return res.status(403).json({ msg: "Only admins can upload resources" });
   }
 
+  let file_url = null;
+
   try {
-    const filePath = req.file.path;
-    const fileName = `${Date.now()}-${req.file.originalname}`;
+    if (req.file) {
+      const filePath = req.file.path;
+      const fileName = `${Date.now()}-${req.file.originalname}`;
+      const fileData = fs.readFileSync(filePath);
 
-    // Upload to Supabase
-    const { error: uploadError } = await supabase.storage
-      .from("student-files")
-      .upload(fileName, fs.createReadStream(filePath), {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: "application/pdf",
-      });
+      const { error: uploadError } = await supabase.storage
+        .from("student-files")
+        .upload(fileName, fileData, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: "application/pdf",
+        });
 
-    if (uploadError) throw uploadError;
+      if (uploadError) throw uploadError;
 
-    // Get public URL
-    const { publicUrl } = supabase.storage
-      .from("student-files")
-      .getPublicUrl(fileName);
+      const { publicURL, error: urlError } = supabase.storage
+        .from("student-files")
+        .getPublicUrl(fileName);
 
-    // Delete local temp file
-    fs.unlinkSync(filePath);
+      if (urlError) throw urlError;
 
-    // Save to DB
+      file_url = publicURL;
+      fs.unlinkSync(filePath);
+    }
+
     const result = await pool.query(
-      `INSERT INTO resources (student_id, resource_name, file_url) 
+      `INSERT INTO resources (student_id, resource_name, file_url)
        VALUES ($1, $2, $3) RETURNING *`,
-      [student_id, resource_name, publicUrl]
+      [student_id, resource_name, file_url]
     );
 
     res.json(result.rows[0]);
   } catch (err) {
     console.error("Create resource error:", err.message);
-    res.status(500).send("Server error");
+    res.status(500).json({ msg: err.message });
   }
 };
 
-// ✏️ Update resource record only (no file)
 const updateResource = async (req, res) => {
   const { id } = req.params;
-  const updates = req.body;
+  const { resource_name } = req.body;
+
+  if (!req.user || req.user.role !== "admin") {
+    return res.status(403).json({ msg: "Only admins can update resources" });
+  }
 
   try {
-    const keys = Object.keys(updates);
-    const values = Object.values(updates);
-    const setClause = keys.map((key, i) => `${key}=$${i + 1}`).join(",");
+    const { rows } = await pool.query("SELECT * FROM resources WHERE id=$1", [
+      id,
+    ]);
+    if (!rows.length)
+      return res.status(404).json({ msg: "Resource not found" });
+
+    const resource = rows[0];
+    let file_url = resource.file_url;
+
+    if (req.file) {
+      const filePath = req.file.path;
+      const fileName = `${Date.now()}-${req.file.originalname}`;
+      const fileData = fs.readFileSync(filePath);
+
+      const { error: uploadError } = await supabase.storage
+        .from("student-files")
+        .upload(fileName, fileData, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: "application/pdf",
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { publicURL, error: urlError } = supabase.storage
+        .from("student-files")
+        .getPublicUrl(fileName);
+
+      if (urlError) throw urlError;
+
+      file_url = publicURL;
+      fs.unlinkSync(filePath);
+
+      if (resource.file_url) {
+        const oldFile = resource.file_url.split("/").pop();
+        await supabase.storage.from("student-files").remove([oldFile]);
+      }
+    }
 
     const result = await pool.query(
-      `UPDATE resources SET ${setClause} WHERE id=$${
-        keys.length + 1
-      } RETURNING *`,
-      [...values, id]
+      `UPDATE resources SET resource_name=$1, file_url=$2
+       WHERE id=$3 RETURNING *`,
+      [resource_name, file_url, id]
     );
 
     res.json(result.rows[0]);
   } catch (err) {
     console.error("Update resource error:", err.message);
-    res.status(500).send("Server error");
+    res.status(500).json({ msg: err.message });
   }
 };
 
-// ❌ Delete resource & remove from Supabase
 const deleteResource = async (req, res) => {
   const { id } = req.params;
 
+  if (!req.user || req.user.role !== "admin") {
+    return res.status(403).json({ msg: "Only admins can delete resources" });
+  }
+
   try {
-    // Get resource
     const { rows } = await pool.query("SELECT * FROM resources WHERE id=$1", [
       id,
     ]);
-    if (rows.length === 0) {
+    if (!rows.length)
       return res.status(404).json({ msg: "Resource not found" });
-    }
 
     const resource = rows[0];
 
-    // Delete file from Supabase
     if (resource.file_url) {
-      try {
-        const fileName = resource.file_url.split("/").pop();
-        const { error } = await supabase.storage
-          .from("student-files")
-          .remove([fileName]);
-        if (error)
-          console.warn(
-            "⚠️ Failed to delete resource from Supabase:",
-            error.message
-          );
-      } catch (err) {
-        console.warn("⚠️ Supabase deletion error:", err.message);
-      }
+      const fileName = resource.file_url.split("/").pop();
+      await supabase.storage.from("student-files").remove([fileName]);
     }
 
-    // Delete DB record
     await pool.query("DELETE FROM resources WHERE id=$1", [id]);
-
-    res.json({ msg: "Resource deleted" });
+    res.json({ msg: "Resource deleted successfully" });
   } catch (err) {
     console.error("Delete resource error:", err.message);
-    res.status(500).send("Server error");
+    res.status(500).json({ msg: err.message });
   }
 };
 
