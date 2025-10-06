@@ -425,7 +425,7 @@ async function openEditModal(student) {
     if (!title || !file) return alert("Title/Name and file are required");
 
     const formData = new FormData();
-    if (type === "resource") formData.append("name", title);
+    if (type === "resource") formData.append("resource_name", title);
     else {
       formData.append("title", title);
       formData.append("description", description);
