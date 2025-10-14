@@ -1,4 +1,3 @@
-require("dotenv").config(); // Load environment variables
 const { Pool } = require("pg");
 
 const pool = new Pool({
@@ -7,7 +6,10 @@ const pool = new Pool({
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   port: process.env.DB_PORT,
-  ssl: { rejectUnauthorized: false },
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
 });
 
 module.exports = pool;

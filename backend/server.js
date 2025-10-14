@@ -1,12 +1,22 @@
+const dotenv = require("dotenv");
+
+const envFile =
+  process.env.NODE_ENV === "production" ? ".env.production" : ".env";
+dotenv.config({ path: envFile });
+
+console.log("Loaded ENV:", envFile);
+console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
+console.log("SUPABASE_KEY:", process.env.SUPABASE_KEY);
+
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv");
+// const dotenv = require("dotenv");
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
 const pool = require("./config/db");
 
-dotenv.config();
+// dotenv.config();
 const app = express();
 const server = http.createServer(app);
 

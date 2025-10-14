@@ -749,22 +749,6 @@ h2 {
   }
 }
 
-/* .btn.btn-primary {
-  background-color: #1a9fff;
-  border: none;
-  color: #fff;
-  padding: 12px;
-  border-radius: 6px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  width: 100%;
-}
-
-.btn.btn-primary:hover {
-  background-color: #1580cc;
-} */
-
 /* 🌐 Mobile-Responsive Layout */
 @media (max-width: 768px) {
   .pricing-table {

@@ -1,0 +1,520 @@
+<section id="community-section" class="dashboard-section" style="display: none">
+  <header class="community-nav">
+    <a href="#" class="tab-link active" data-tab="qa">Q&A</a>
+    <a href="#" class="tab-link" data-tab="puzzles">Quizzes</a>
+    <a href="#" class="tab-link" data-tab="leaderboard">Leaderboard</a>
+    <a href="#" class="tab-link" data-tab="admin-posts">Admin Posts</a>
+  </header>
+
+  <div class="community-panels">
+    <!-- Q&A -->
+    <div id="community-qa" class="community-tab active">
+      <section class="qa-section">
+        <div class="qa-questions">
+          <p>Loading questions...</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Quizzes -->
+    <div id="community-puzzles" class="community-tab">
+      <section class="puzzles">
+        <div id="user-quiz-section">
+          <p id="puzzle-question">Quiz: Loading...</p>
+
+          <div id="quiz-form" style="margin-top: 0.5rem">
+            <form id="quiz-options-form">
+              <!-- Options will be inserted here -->
+            </form>
+            <button id="submit-quiz">Submit</button>
+          </div>
+
+          <button class="quiz-btn">Start Quiz</button>
+          <button id="manage-quizzes-btn" class="submit-btn">
+            Manage Quizzes
+          </button>
+          <p id="quiz-result" style="margin-top: 1rem"></p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Leaderboard -->
+    <div id="community-leaderboard" class="community-tab">
+      <section class="leaderboard">
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Name</th>
+              <th>XP</th>
+              <th>Level</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body">
+            <tr>
+              <td colspan="5">Loading leaderboard...</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- Admin Posts -->
+    <div id="community-admin-posts" class="community-tab">
+      <section class="admin-posts">
+        <div id="admin-posts-container">
+          <p>Loading admin posts...</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("Page loaded");
+    console.log(document.getElementById("add-quiz-btn"));
+  });
+</script>
+<script type="module" src="community.js" defer></script>
+<script defer>
+  document.addEventListener("DOMContentLoaded", () => {
+    const addQuizBtn = document.getElementById("add-quiz-btn");
+    console.log("Button element:", addQuizBtn);
+    if (addQuizBtn) {
+      addQuizBtn.addEventListener("click", () => {
+        console.log("Button clicked!");
+        alert("Button clicked!");
+      });
+    } else {
+      console.log("Button not found in DOM.");
+    }
+  });
+</script>
+
+<style>
+  /* ===========================
+   VARIABLES
+=========================== */
+  :root {
+    --bg-dark: #0d1b2a;
+    --bg-medium: #1b2838;
+    --bg-light: #1e1e2f;
+    --primary: #00ffff;
+    --primary-hover: #00cccc;
+    --secondary: #1580cc;
+    --secondary-hover: #1d90ea;
+    --accent: #ffd166;
+    --danger: #e53935;
+    --danger-hover: #f04b45;
+    --text-light: #f5f5f5;
+    --text-medium: #a8c7fa;
+    --text-muted: #888;
+    --shadow-neon: 0 0 10px var(--primary), 0 0 20px var(--primary);
+    --font-code: "JetBrains Mono", monospace;
+  }
+
+  /* ===========================
+   RESET & BASE
+=========================== */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: var(--font-code);
+    background: linear-gradient(135deg, #0d1b2a, #1b2838);
+    color: var(--text-light);
+    min-height: 100vh;
+    line-height: 1.5;
+    transition: background 0.5s ease;
+  }
+
+  a {
+    text-decoration: none;
+    color: var(--text-medium);
+    transition: color 0.3s ease;
+  }
+
+  a:hover {
+    color: var(--text-light);
+  }
+
+  /* ===========================
+   NAVIGATION
+=========================== */
+  .community-nav {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid #2f3f50;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+  }
+
+  .community-nav a {
+    padding: 0.4rem 1rem;
+    background-color: var(--bg-medium);
+    border-radius: 4px;
+    color: var(--text-medium);
+    cursor: pointer;
+    flex-shrink: 0;
+    animation: fadeIn 0.6s ease forwards;
+  }
+
+  .community-nav a.active {
+    background-color: var(--secondary);
+    color: var(--text-light);
+    box-shadow: var(--shadow-neon);
+  }
+
+  /* ===========================
+   TABS
+=========================== */
+  .community-tab {
+    display: none;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUp 0.5s forwards;
+  }
+
+  .community-tab.active {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ===========================
+   BUTTONS
+=========================== */
+  button,
+  #submit-quiz,
+  .submit-btn,
+  .ask-question-btn,
+  .quiz-btn,
+  #toggle-admin-view,
+  .edit-btn,
+  .delete-btn,
+  .answer-submit,
+  .ai-prompt-btn,
+  #ai-submit-btn {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+
+  /* Primary Buttons */
+  #submit-quiz,
+  .submit-btn,
+  .ask-question-btn,
+  .quiz-btn,
+  #toggle-admin-view,
+  .edit-btn {
+    background-color: var(--secondary);
+    color: var(--text-light);
+    box-shadow: 0 0 5px var(--secondary);
+  }
+
+  #submit-quiz:hover,
+  .submit-btn:hover,
+  .ask-question-btn:hover,
+  .quiz-btn:hover,
+  #toggle-admin-view:hover,
+  .edit-btn:hover {
+    background-color: var(--secondary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px var(--secondary-hover);
+  }
+
+  /* Danger Buttons */
+  .delete-btn,
+  .delete-post-btn {
+    background-color: var(--danger);
+    color: var(--text-light);
+  }
+
+  .delete-btn:hover,
+  .delete-post-btn:hover {
+    background-color: var(--danger-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 0 10px var(--danger-hover);
+  }
+
+  /* ===========================
+   CARDS
+=========================== */
+  .qa-card,
+  .challenge-card,
+  .leaderboard,
+  .puzzles,
+  .admin-posts,
+  #submit-question-section,
+  #quiz-form,
+  #create-quiz-form,
+  .answer-form,
+  .ai-chat-box {
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: var(--bg-light);
+    box-shadow: 0 0 8px var(--primary);
+    animation: fadeIn 0.5s ease forwards;
+  }
+
+  /* Q&A Cards */
+  .qa-card {
+    border-left: 4px solid var(--secondary);
+    color: var(--text-light);
+    background-color: #1e1e2f;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .qa-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 20px var(--primary);
+  }
+  .qa-meta,
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-code);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .qa-meta .qa-author,
+  .meta .author {
+    font-weight: 600;
+    color: var(--primary);
+    white-space: nowrap;
+  }
+
+  .qa-meta .qa-date,
+  .meta .date {
+    font-weight: 400;
+    color: var(--text-medium);
+    font-size: 0.8rem;
+    transition: color 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .qa-meta .qa-date:hover,
+  .meta .date {
+    color: var(--accent);
+    transform: translateY(-1px);
+    transition: all 0.3s ease;
+  }
+
+  /* ===========================
+   TEXTAREAS & INPUTS
+=========================== */
+  textarea,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    width: 100%;
+    padding: 0.6rem;
+    border-radius: 5px;
+    border: 1px solid #555;
+    background-color: var(--bg-light);
+    color: var(--primary);
+    font-family: var(--font-code);
+    font-size: 0.95rem;
+    resize: vertical;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  textarea:focus,
+  input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 8px var(--primary);
+  }
+
+  /* ===========================
+   AI CHAT
+=========================== */
+  .ai-chat-box {
+    min-height: 250px;
+    max-height: 400px;
+    overflow-y: auto;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--secondary);
+    padding: 1rem;
+    border-radius: 6px;
+    font-family: var(--font-code);
+    color: var(--text-light);
+    animation: fadeIn 0.6s ease;
+  }
+
+  .ai-message {
+    margin-bottom: 1rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 5px;
+    max-width: 85%;
+    word-wrap: break-word;
+    animation: fadeInUp 0.4s ease forwards;
+  }
+
+  .ai-message.user {
+    background-color: #1b2838;
+    color: var(--primary);
+    align-self: flex-end;
+    box-shadow: 0 0 8px var(--primary);
+  }
+
+  .ai-message.system {
+    background-color: var(--bg-dark);
+    color: var(--primary);
+    align-self: flex-start;
+    box-shadow: 0 0 8px var(--secondary);
+  }
+
+  /* Quick Prompt Buttons */
+  .ai-prompt-btn {
+    background-color: var(--secondary);
+  }
+
+  .ai-prompt-btn:hover {
+    background-color: var(--secondary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 0 10px var(--secondary);
+  }
+
+  /* ===========================
+   TABLES
+=========================== */
+  table {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    border-collapse: collapse;
+    display: block;
+    overflow-x: auto;
+    padding-bottom: 10px;
+  }
+
+  th,
+  td {
+    border: 1px solid #2f3f50;
+    padding: 0.5rem 0.7rem;
+    text-align: left;
+  }
+
+  th {
+    background-color: var(--secondary);
+    color: white;
+  }
+
+  tr:nth-child(even) {
+    background-color: #1e2a3a;
+  }
+
+  tr:hover {
+    background-color: #263b50;
+    transition: background 0.2s ease;
+  }
+  #quiz-creation-form,
+  #create-quiz-form {
+    z-index: 999;
+  }
+
+  .community-tab .leaderboard {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+    overflow-x: auto;
+  }
+
+  .community-tab .leaderboard table {
+    width: 100%;
+    display: table;
+    border-collapse: collapse;
+    margin: 0;
+  }
+
+  /* ===========================
+   ANIMATIONS
+=========================== */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes neonGlow {
+    0%,
+    100% {
+      text-shadow: 0 0 5px var(--primary), 0 0 10px var(--primary);
+    }
+    50% {
+      text-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
+    }
+  }
+
+  @keyframes neonPulse {
+    0% {
+      box-shadow: 0 0 5px var(--primary);
+    }
+    50% {
+      box-shadow: 0 0 15px var(--primary);
+    }
+    100% {
+      box-shadow: 0 0 5px var(--primary);
+    }
+  }
+
+  /* Apply Neon Animation to Headings */
+  h3,
+  .qa-title,
+  .qa-header h4 {
+    animation: neonGlow 1.5s infinite alternate;
+  }
+
+  /* ===========================
+   MOBILE-FIRST RESPONSIVE
+=========================== */
+  @media (min-width: 640px) {
+    .community-nav {
+      justify-content: flex-start;
+    }
+
+    .ai-chat-box {
+      max-height: 400px;
+    }
+    table {
+      width: 100% !important;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .community-nav {
+      gap: 1.5rem;
+    }
+    table {
+      width: 100% !important;
+    }
+  }
+</style>

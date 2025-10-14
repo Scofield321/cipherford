@@ -1,0 +1,495 @@
+<header class="community-nav">
+  <a href="#" class="tab-link active" data-tab="qa">Q&A</a>
+  <a href="#" class="tab-link" data-tab="quiz">Quizzes</a>
+  <a href="#" class="tab-link" data-tab="admin-posts">Admin Posts</a>
+  <a href="#" class="tab-link" data-tab="leaderboard">Leaderboard</a>
+</header>
+
+<div class="community-panels">
+  <!-- Q&A -->
+  <div id="community-qa" class="community-tab active">
+    <button id="ask-question-btn" class="ask-question-btn">
+      ➕ Ask a Question
+    </button>
+
+    <div id="submit-question-section" style="display: none; margin-top: 1rem">
+      <form id="submit-question-form">
+        <input
+          type="text"
+          id="question-title-input"
+          placeholder="Short title"
+          required
+        />
+        <textarea
+          id="question-body-input"
+          placeholder="Describe your question..."
+          rows="4"
+          required
+        ></textarea>
+        <div class="question-buttons">
+          <button type="submit">Submit Question</button>
+          <button type="button" id="cancel-question">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <section class="qa-section">
+      <div id="community-qa-posts"></div>
+    </section>
+
+    <!-- Answers Modal -->
+    <div id="community-answers-modal" class="modal" style="display: none">
+      <div class="modal-content">
+        <h3>Answers</h3>
+        <div id="community-answers-list"></div>
+        <button id="close-answers-modal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Puzzles -->
+  <div id="community-quiz" class="community-tab">
+    <section class="puzzles">
+      <h3>Puzzles</h3>
+      <div id="community-quiz-container"></div>
+    </section>
+  </div>
+
+  <!-- Admin Posts -->
+  <div id="community-admin-posts" class="community-tab">
+    <section class="admin-posts">
+      <div id="admin-posts-container">
+        <h3>Admin Posts</h3>
+      </div>
+    </section>
+  </div>
+
+  <!-- Leaderboard -->
+  <div id="community-leaderboard" class="community-tab">
+    <section class="leaderboard">
+      <h3>Leaderboard</h3>
+      <div class="leaderboard-table-wrapper">
+        <table id="community-leaderboard-table" class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Username</th>
+              <th>XP</th>
+              <th>Level</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="5" style="text-align: center">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script type="module">
+  import { initStudentCommunity } from "./student-community.js";
+
+  // Initialize community section immediately
+  document.addEventListener("DOMContentLoaded", () => {
+    initStudentCommunity();
+  });
+</script>
+
+<style>
+  /* ===========================
+   COMMUNITY SECTION CSS (SCOPED)
+=========================== */
+  #community-section {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--text-light);
+  }
+
+  /* ---------------------------
+   VARIABLES (use globally if needed)
+--------------------------- */
+  :root {
+    --bg-dark: #0d1b2a;
+    --bg-medium: #1b2838;
+    --bg-light: #1e1e2f;
+    --primary: #00ffff;
+    --primary-hover: #00cccc;
+    --secondary: #1580cc;
+    --secondary-hover: #1d90ea;
+    --accent: #ffd166;
+    --danger: #e53935;
+    --danger-hover: #f04b45;
+    --text-light: #f5f5f5;
+    --text-medium: #a8c7fa;
+    --text-muted: #888;
+    --shadow-neon: 0 0 10px var(--primary), 0 0 20px var(--primary);
+  }
+
+  /* ---------------------------
+   COMMUNITY NAV
+--------------------------- */
+  #community-section .community-nav {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid #2f3f50;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+  }
+  a {
+    text-decoration: none;
+  }
+  #community-section .community-nav a {
+    padding: 0.4rem 1rem;
+    background-color: var(--bg-medium);
+    border-radius: 4px;
+    color: var(--text-medium);
+    cursor: pointer;
+    flex-shrink: 0;
+    animation: fadeIn 0.6s ease forwards;
+  }
+
+  #community-section .community-nav a.active {
+    background-color: var(--secondary);
+    color: var(--text-light);
+    box-shadow: var(--shadow-neon);
+  }
+
+  /* ---------------------------
+   TABS
+--------------------------- */
+  #community-section .community-tab {
+    display: none;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUp 0.5s forwards;
+  }
+
+  #community-section .community-tab.active {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ---------------------------
+   BUTTONS
+--------------------------- */
+  #community-section button,
+  #community-section .submit-btn,
+  #community-section .ask-question-btn,
+  #community-section .quiz-btn,
+  #community-section #toggle-admin-view,
+  #community-section .edit-btn,
+  #community-section .delete-btn,
+  #community-section .answer-submit,
+  #community-section .ai-prompt-btn,
+  #community-section #ai-submit-btn {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+
+  #community-section .submit-btn,
+  #community-section .ask-question-btn,
+  #community-section .quiz-btn,
+  #community-section #toggle-admin-view,
+  #community-section .edit-btn {
+    background-color: var(--secondary);
+    color: var(--text-light);
+    box-shadow: 0 0 5px var(--secondary);
+  }
+
+  #community-section .submit-btn:hover,
+  #community-section .ask-question-btn:hover,
+  #community-section .quiz-btn:hover,
+  #community-section #toggle-admin-view:hover,
+  #community-section .edit-btn:hover {
+    background-color: var(--secondary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px var(--secondary-hover);
+  }
+
+  #community-section .delete-btn,
+  #community-section .delete-post-btn {
+    background-color: var(--danger);
+    color: var(--text-light);
+  }
+
+  #community-section .delete-btn:hover,
+  #community-section .delete-post-btn:hover {
+    background-color: var(--danger-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 0 10px var(--danger-hover);
+  }
+
+  /* ---------------------------
+   CARDS
+--------------------------- */
+  #community-section .qa-card,
+  #community-section .challenge-card,
+  #community-section .leaderboard,
+  #community-section .puzzles,
+  #community-section .admin-posts,
+  #community-section #submit-question-section,
+  #community-section #quiz-form,
+  #community-section #create-quiz-form,
+  #community-section .answer-form,
+  #community-section .ai-chat-box {
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: var(--bg-light);
+    box-shadow: 0 0 8px var(--primary);
+    animation: fadeIn 0.5s ease forwards;
+  }
+
+  #community-section .qa-card {
+    border-left: 4px solid var(--secondary);
+    color: var(--text-light);
+    background-color: #1e1e2f;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  #community-section .qa-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 20px var(--primary);
+  }
+
+  #community-section .qa-meta,
+  #community-section .meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-code);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  #community-section .qa-meta .qa-author,
+  #community-section .meta .author {
+    font-weight: 600;
+    color: var(--primary);
+    white-space: nowrap;
+  }
+
+  #community-section .qa-meta .qa-date,
+  #community-section .meta .date {
+    font-weight: 400;
+    color: var(--text-medium);
+    font-size: 0.8rem;
+    transition: color 0.3s ease;
+    white-space: nowrap;
+  }
+
+  #community-section .qa-meta .qa-date:hover,
+  #community-section .meta .date:hover {
+    color: var(--accent);
+    transform: translateY(-1px);
+    transition: all 0.3s ease;
+  }
+
+  /* ---------------------------
+   INPUTS & TEXTAREAS
+--------------------------- */
+  #community-section textarea,
+  #community-section input[type="text"],
+  #community-section input[type="email"],
+  #community-section input[type="password"] {
+    width: 100%;
+    padding: 0.6rem;
+    border-radius: 5px;
+    border: 1px solid #555;
+    background-color: var(--bg-light);
+    color: var(--primary);
+    font-family: var(--font-code);
+    font-size: 0.95rem;
+    resize: vertical;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  #community-section textarea:focus,
+  #community-section input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 8px var(--primary);
+  }
+
+  /* ---------------------------
+   AI CHAT BOX
+--------------------------- */
+  #community-section .ai-chat-box {
+    min-height: 250px;
+    max-height: 400px;
+    overflow-y: auto;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--secondary);
+    padding: 1rem;
+    border-radius: 6px;
+    font-family: var(--font-code);
+    color: var(--text-light);
+    animation: fadeIn 0.6s ease;
+  }
+
+  #community-section .ai-message {
+    margin-bottom: 1rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 5px;
+    max-width: 85%;
+    word-wrap: break-word;
+    animation: fadeInUp 0.4s ease forwards;
+  }
+
+  #community-section .ai-message.user {
+    background-color: #1b2838;
+    color: var(--primary);
+    align-self: flex-end;
+    box-shadow: 0 0 8px var(--primary);
+  }
+
+  #community-section .ai-message.system {
+    background-color: var(--bg-dark);
+    color: var(--primary);
+    align-self: flex-start;
+    box-shadow: 0 0 8px var(--secondary);
+  }
+
+  #community-section .ai-prompt-btn {
+    background-color: var(--secondary);
+  }
+
+  #community-section .ai-prompt-btn:hover {
+    background-color: var(--secondary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 0 10px var(--secondary);
+  }
+
+  /* ---------------------------
+   TABLES
+--------------------------- */
+  #community-section table {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    border-collapse: collapse;
+    display: block;
+    overflow-x: auto;
+    padding-bottom: 10px;
+  }
+
+  #community-section th,
+  #community-section td {
+    border: 1px solid #2f3f50;
+    padding: 0.5rem 0.7rem;
+    text-align: left;
+  }
+
+  #community-section th {
+    background-color: var(--secondary);
+    color: white;
+  }
+
+  #community-section tr:nth-child(even) {
+    background-color: #1e2a3a;
+  }
+
+  #community-section tr:hover {
+    background-color: #263b50;
+    transition: background 0.2s ease;
+  }
+
+  #community-section .community-tab .leaderboard {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+    overflow-x: auto;
+  }
+  #community-section .community-tab .leaderboard table {
+    width: 100%;
+    display: table;
+    border-collapse: collapse;
+    margin: 0;
+  }
+
+  /* ---------------------------
+   ANIMATIONS
+--------------------------- */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes neonGlow {
+    0%,
+    100% {
+      text-shadow: 0 0 5px var(--primary), 0 0 10px var(--primary);
+    }
+    50% {
+      text-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
+    }
+  }
+
+  @keyframes neonPulse {
+    0% {
+      box-shadow: 0 0 5px var(--primary);
+    }
+    50% {
+      box-shadow: 0 0 15px var(--primary);
+    }
+    100% {
+      box-shadow: 0 0 5px var(--primary);
+    }
+  }
+
+  #community-section h3,
+  #community-section .qa-title,
+  #community-section .qa-header h4 {
+    animation: neonGlow 1.5s infinite alternate;
+  }
+
+  /* ---------------------------
+   RESPONSIVE
+--------------------------- */
+  @media (min-width: 640px) {
+    #community-section .community-nav {
+      justify-content: flex-start;
+    }
+    #community-section .ai-chat-box {
+      max-height: 400px;
+    }
+    #community-section table {
+      width: 100% !important;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    #community-section .community-nav {
+      gap: 1.5rem;
+    }
+    #community-section table {
+      width: 100% !important;
+    }
+  }
+</style>

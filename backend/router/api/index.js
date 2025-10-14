@@ -19,6 +19,11 @@ router.use("/attendance", require("./attendance"));
 router.use("/weekly_points", require("./weekly_points"));
 router.use("/admin", require("./admin"));
 router.use("/bookings", require("./bookings"));
+router.use("/quizzes", require("./quizzes"));
+router.use("/leaderboard", require("./leaderboard"));
+router.use("/qa", require("./qa"));
+router.use("/ai", require("./aiHugging"));
+router.use("/student/community", require("./studentCommunityRoutes"));
 
 // ✅ No catch-all here; 404 is handled in server.js
 

@@ -14,4 +14,3 @@ router.put("/:id", auth, updateTopic);
 router.delete("/:id", auth, deleteTopic);
 
 module.exports = router;
-// this is just for testing

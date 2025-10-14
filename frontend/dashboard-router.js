@@ -82,6 +82,25 @@ async function loadView(view) {
         });
         break;
 
+      case "community":
+        try {
+          // Fetch community HTML fresh each time
+          const res = await fetch("community.html");
+          if (!res.ok) throw new Error("Failed to load community HTML");
+          mainContent.innerHTML = await res.text();
+
+          //Import and initialize Community router
+          const module = await import("./community-router.js");
+          if (typeof module.initCommunityRouter === "function") {
+            module.initCommunityRouter(); // always runs on fresh DOM
+          }
+        } catch (err) {
+          console.error("Failed to load community view:", err);
+          mainContent.innerHTML =
+            "<p style='padding:20px;'>Failed to load content.</p>";
+        }
+        break;
+
       case "settings":
         await loadModule("./settings.js", "settings-script");
         import("./settings.js");

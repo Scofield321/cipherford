@@ -1,6 +1,3 @@
-// export const BASE_URL = "https://cipherford.onrender.com/api";
-// export const SOCKET_URL = "https://cipherford.onrender.com";
-
 const isLocal = /^localhost$|^127\.\d+\.\d+\.\d+$/.test(
   window.location.hostname
 );
