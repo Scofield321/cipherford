@@ -28,28 +28,78 @@ export const loadCommunityPosts = async () => {
     posts.forEach((post) => {
       const postDiv = document.createElement("div");
       postDiv.classList.add("qa-card");
+
       postDiv.innerHTML = `
         <h4 class="qa-title">${post.title}</h4>
         <p>${post.body}</p>
+
         <div class="qa-meta">
-        <span class="qa-author">${
-          post.first_name || post.last_name || post.username || "Anonymous"
-        }</span>
+          <span class="qa-author">${
+            post.first_name || post.last_name || post.username || "Anonymous"
+          }</span>
           <span class="qa-date">${new Date(
             post.created_at
           ).toLocaleString()}</span>
         </div>
+
         <button onclick="loadAnswers('${post.id}')">View Answers</button>
-        <div id="answers-${post.id}"></div>
+        <div id="answers-${post.id}" class="answers-section"></div>
+
         <textarea id="answer-input-${
           post.id
-        }"  placeholder="Your answer" rows="5"></textarea>
+        }" placeholder="Your answer" rows="5"></textarea>
         <button onclick="submitAnswer('${post.id}')">Submit</button>
       `;
+
       postsContainer.appendChild(postDiv);
     });
   } catch (err) {
     console.error("Error loading community posts:", err);
+  }
+};
+
+// 🧠 Loader-enhanced loadAnswers
+window.loadAnswers = async (postId) => {
+  const answersDiv = document.getElementById(`answers-${postId}`);
+
+  // Show loader
+  answersDiv.innerHTML = `
+    <div class="loader"></div>
+  `;
+
+  try {
+    // Optional: simulate delay for testing
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    const answers = await fetchWithAuth(
+      `${BASE_URL}/student/community/answers/${postId}`
+    );
+
+    if (!answers || answers.length === 0) {
+      answersDiv.innerHTML = `<p style="text-align:center; color:#aaa;">No answers yet.</p>`;
+      return;
+    }
+
+    answersDiv.innerHTML = answers
+      .map(
+        (ans) => `
+        <div class="answer-card">
+          <p>${ans.body}</p>
+          <div class="qa-meta">
+            <span class="qa-author">${
+              ans.first_name || ans.last_name || ans.username || "Anonymous"
+            }</span>
+            <span class="qa-date">${new Date(
+              ans.created_at
+            ).toLocaleString()}</span>
+          </div>
+        </div>
+      `
+      )
+      .join("");
+  } catch (err) {
+    console.error("Error loading answers:", err);
+    answersDiv.innerHTML = `<p style="color:red; text-align:center;">Failed to load answers.</p>`;
   }
 };
 
@@ -151,30 +201,60 @@ export const loadAnswers = async (postId) => {
 // Load leaderboard into table
 // ==============================
 export const loadLeaderboard = async () => {
+  const tbody = document.querySelector("#community-leaderboard-table tbody");
+
+  // Show loader first
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="5">
+        <div id="leaderboard-loader" class="loader"></div>
+      </td>
+    </tr>
+  `;
+
   try {
     const leaderboard = await fetchWithAuth(
       `${BASE_URL}/student/community/leaderboard`
     );
-    const tbody = document.querySelector("#community-leaderboard-table tbody");
+
+    if (!leaderboard || leaderboard.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align:center; color:#aaa;">
+            No leaderboard data available.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    // Render leaderboard rows
     tbody.innerHTML = leaderboard
       .map(
         (user) => `
-      <tr>
-        <td>${user.rank}</td>
-        <td>${user.first_name} ${user.last_name}</td>
-        <td>${user.xp}</td>
-        <td>${user.level}</td>
-        <td>
-          <div style="background:#333; border-radius:4px; height:10px;">
-            <div style="width:${user.progress}%; background:#00ffff; height:10px; border-radius:4px;"></div>
-          </div>
-        </td>
-      </tr>
-    `
+        <tr>
+          <td>${user.rank}</td>
+          <td>${user.first_name} ${user.last_name}</td>
+          <td>${user.xp}</td>
+          <td>${user.level}</td>
+          <td>
+            <div style="background:#333; border-radius:4px; height:10px;">
+              <div style="width:${user.progress}%; background:#00ffff; height:10px; border-radius:4px;"></div>
+            </div>
+          </td>
+        </tr>
+      `
       )
       .join("");
   } catch (err) {
     console.error("Error loading leaderboard:", err);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center; color:red;">
+          Failed to load leaderboard. Please try again later.
+        </td>
+      </tr>
+    `;
   }
 };
 
@@ -278,14 +358,32 @@ export const loadAdminPosts = async () => {
 export const loadQuizzes = async () => {
   console.log("🎯 Loading quizzes...");
   try {
+    const container = document.getElementById("community-quiz-container");
+    if (!container) return;
+
+    // Show loader before fetching quizzes
+    container.innerHTML = `
+      <div id="quiz-loader" style="text-align:center; padding:2rem;">
+        <div class="spinner" 
+             style="border:4px solid #ccc; border-top:4px solid #00ffff; border-radius:50%; width:40px; height:40px; margin:auto; animation:spin 1s linear infinite;">
+        </div>
+        <p>Loading quizzes...</p>
+      </div>
+    `;
+
+    // Add CSS spinner animation (in case not in your stylesheet)
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+
     const quizzes = await fetchWithAuth(
       `${BASE_URL}/student/community/quizzes`
     );
-    const container = document.getElementById("community-quiz-container");
-
-    if (!container) return;
-
-    container.innerHTML = "";
 
     if (!quizzes.length) {
       container.innerHTML = `<p style="text-align:center;">No puzzles available yet.</p>`;
@@ -295,50 +393,70 @@ export const loadQuizzes = async () => {
     let currentIndex = 0;
 
     const showQuiz = (quiz) => {
-      container.innerHTML = "";
-
-      const quizDiv = document.createElement("div");
-      quizDiv.classList.add("quiz-card");
-      quizDiv.innerHTML = `
-        <h4>${quiz.question}</h4>
-        <form id="quiz-form-${quiz.id}" class="quiz-form">
-          ${quiz.options
-            .map(
-              (opt) => `
-            <label>
-              <input type="radio" name="quiz-${quiz.id}" value="${opt}"> ${opt}
-            </label><br>`
-            )
-            .join("")}
-          <button type="submit" class="quiz-submit-btn">Submit Answer</button>
-        </form>
-        <div id="quiz-result-${quiz.id}" class="quiz-result"></div>
+      // Show loader briefly before displaying each quiz
+      container.innerHTML = `
+        <div id="quiz-loader" style="text-align:center; padding:2rem;">
+          <div class="spinner" 
+               style="border:4px solid #ccc; border-top:4px solid #00ffff; border-radius:50%; width:40px; height:40px; margin:auto; animation:spin 1s linear infinite;">
+          </div>
+          <p>Loading next quiz...</p>
+        </div>
       `;
 
-      container.appendChild(quizDiv);
+      setTimeout(() => {
+        container.innerHTML = "";
 
-      const form = document.getElementById(`quiz-form-${quiz.id}`);
+        const quizDiv = document.createElement("div");
+        quizDiv.classList.add("quiz-card");
+        quizDiv.innerHTML = `
+          <h4>${quiz.question}</h4>
+          <form id="quiz-form-${quiz.id}" class="quiz-form">
+            ${quiz.options
+              .map(
+                (opt) => `
+              <label>
+                <input type="radio" name="quiz-${quiz.id}" value="${opt}"> ${opt}
+              </label><br>`
+              )
+              .join("")}
+            <button type="submit" class="quiz-submit-btn">Submit Answer</button>
+          </form>
+          <div id="quiz-result-${quiz.id}" class="quiz-result"></div>
+        `;
 
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const selected = form.querySelector(
-          `input[name="quiz-${quiz.id}"]:checked`
-        );
-        if (!selected) return alert("Please select an option.");
+        container.appendChild(quizDiv);
 
-        // Submit the quiz answer and show feedback
-        await submitQuiz(quiz.id, selected.value);
+        const form = document.getElementById(`quiz-form-${quiz.id}`);
 
-        // Wait 2 seconds before moving to next quiz
-        setTimeout(() => {
-          currentIndex++;
-          if (currentIndex < quizzes.length) {
-            showQuiz(quizzes[currentIndex]);
-          } else {
-            container.innerHTML = `<p style="text-align:center; font-size:1.1rem;">🎉 Congratulations, you have completed all quizzes!</p>`;
-          }
-        }, 2000);
-      });
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const selected = form.querySelector(
+            `input[name="quiz-${quiz.id}"]:checked`
+          );
+          if (!selected) return alert("Please select an option.");
+
+          await submitQuiz(quiz.id, selected.value);
+
+          // Show loader for 2 seconds before moving to next quiz
+          container.innerHTML = `
+            <div id="quiz-loader" style="text-align:center; padding:2rem;">
+              <div class="spinner" 
+                   style="border:4px solid #ccc; border-top:4px solid #00ffff; border-radius:50%; width:40px; height:40px; margin:auto; animation:spin 1s linear infinite;">
+              </div>
+              <p>Loading next quiz...</p>
+            </div>
+          `;
+
+          setTimeout(() => {
+            currentIndex++;
+            if (currentIndex < quizzes.length) {
+              showQuiz(quizzes[currentIndex]);
+            } else {
+              container.innerHTML = `<p style="text-align:center; font-size:1.1rem;">🎉 Congratulations, you have completed all quizzes!</p>`;
+            }
+          }, 2000);
+        });
+      }, 1000); // brief delay for loader visibility
     };
 
     showQuiz(quizzes[currentIndex]);

@@ -17,7 +17,7 @@ export async function loadStudentCommunity() {
     mainContent.appendChild(container);
   }
 
-  container.innerHTML = `<div class="loader">Loading Community...</div>`;
+  container.innerHTML = `<div id="community-loader" class="loader"></div>`;
   container.style.display = "block"; // show section
 
   try {
