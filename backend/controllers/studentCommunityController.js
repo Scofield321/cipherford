@@ -319,8 +319,6 @@ const submitQuiz = async (req, res) => {
  * =============================
  */
 const getLeaderboard = async (req, res) => {
-  const limit = parseInt(req.query.limit) || 10;
-
   try {
     const result = await db.query(
       `SELECT
@@ -329,9 +327,7 @@ const getLeaderboard = async (req, res) => {
        FROM users u
        LEFT JOIN user_xp ux ON u.id = ux.user_id
        WHERE u.role='student'
-       ORDER BY xp DESC
-       LIMIT $1`,
-      [limit]
+       ORDER BY xp DESC`
     );
 
     const leaderboard = result.rows.map((user) => {
@@ -347,6 +343,7 @@ const getLeaderboard = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch leaderboard" });
   }
 };
+
 /**
  * =============================
  * GET: /api/student/community/admin-posts

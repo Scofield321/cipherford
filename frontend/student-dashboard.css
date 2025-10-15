@@ -465,7 +465,7 @@ img {
   }
 
   .menu-toggle {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -490,5 +490,8 @@ img {
   }
   .sidebar {
     transform: translateX(0);
+  }
+  .menu-toggle {
+    display: none !important;
   }
 }

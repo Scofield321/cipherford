@@ -37,69 +37,155 @@ export const loadCommunityPosts = async () => {
           <span class="qa-author">${
             post.first_name || post.last_name || post.username || "Anonymous"
           }</span>
-          <span class="qa-date">${new Date(
-            post.created_at
-          ).toLocaleString()}</span>
+          <span class="qa-date">${new Date(post.created_at).toLocaleString([], {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}</span>
         </div>
 
-        <button onclick="loadAnswers('${post.id}')">View Answers</button>
+        <button id="view-btn-${post.id}">View Answers</button>
         <div id="answers-${post.id}" class="answers-section"></div>
 
         <textarea id="answer-input-${
           post.id
         }" placeholder="Your answer" rows="5"></textarea>
-        <button onclick="submitAnswer('${post.id}')">Submit</button>
+        <button id="submit-btn-${post.id}">Submit</button>
       `;
 
       postsContainer.appendChild(postDiv);
+
+      // Attach click listener for "View Answers"
+      const viewBtn = document.getElementById(`view-btn-${post.id}`);
+      const answersDiv = document.getElementById(`answers-${post.id}`);
+
+      viewBtn.addEventListener("click", async () => {
+        // Toggle answers
+        if (answersDiv.style.display === "block") {
+          answersDiv.style.display = "none";
+          viewBtn.textContent = "View Answers";
+          return;
+        }
+
+        // Show loader
+        answersDiv.style.display = "block";
+        answersDiv.innerHTML = `<div class="loader"></div>`;
+        viewBtn.textContent = "Loading...";
+
+        try {
+          // ✅ Correct endpoint for fetching answers
+          const answers = await fetchWithAuth(
+            `${BASE_URL}/student/community/posts/${post.id}/answers`
+          );
+          console.log("Answers for post", post.id, answers);
+
+          if (!answers || answers.length === 0) {
+            answersDiv.innerHTML = `<p style="text-align:center; color:#aaa;">No answers yet.</p>`;
+          } else {
+            answersDiv.innerHTML = answers
+              .map(
+                (ans) => `
+                <div class="answer-card">
+                  <p>${ans.answer}</p>
+                  <div class="qa-meta">
+                    <span class="qa-author">${
+                      ans.first_name ||
+                      ans.last_name ||
+                      ans.username ||
+                      "Anonymous"
+                    }</span>
+                    <span class="qa-date">${new Date(
+                      ans.created_at
+                    ).toLocaleString([], {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}</span>
+                  </div>
+                </div>
+              `
+              )
+              .join("");
+          }
+
+          viewBtn.textContent = "Hide Answers"; // Update button
+        } catch (err) {
+          console.error("Error loading answers:", err);
+          answersDiv.innerHTML = `<p style="color:red; text-align:center;">Failed to load answers.</p>`;
+          viewBtn.textContent = "View Answers"; // Reset button on error
+        }
+      });
+
+      // Attach submit listener
+      const submitBtn = document.getElementById(`submit-btn-${post.id}`);
+      submitBtn.addEventListener("click", () => submitAnswer(post.id));
     });
   } catch (err) {
     console.error("Error loading community posts:", err);
   }
 };
 
-// 🧠 Loader-enhanced loadAnswers
-window.loadAnswers = async (postId) => {
+// Handles both loader and toggle behavior
+window.loadAnswers = async (postId, event) => {
+  const button = event.currentTarget;
   const answersDiv = document.getElementById(`answers-${postId}`);
 
-  // Show loader
-  answersDiv.innerHTML = `
-    <div class="loader"></div>
-  `;
+  // If already open, hide answers and reset button
+  if (answersDiv.dataset.open === "true") {
+    answersDiv.innerHTML = "";
+    answersDiv.dataset.open = "false";
+    button.textContent = "View Answers";
+    return;
+  }
+
+  // Show loader and update button text
+  answersDiv.innerHTML = `<div class="loader"></div>`;
+  answersDiv.dataset.open = "true";
+  button.textContent = "Loading...";
 
   try {
-    // Optional: simulate delay for testing
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
     const answers = await fetchWithAuth(
-      `${BASE_URL}/student/community/answers/${postId}`
+      `${BASE_URL}/student/community/posts/${postId}/answers` // <-- use correct endpoint
     );
 
     if (!answers || answers.length === 0) {
       answersDiv.innerHTML = `<p style="text-align:center; color:#aaa;">No answers yet.</p>`;
-      return;
+    } else {
+      answersDiv.innerHTML = answers
+        .map(
+          (ans) => `
+          <div class="answer-card">
+            <p>${ans.body}</p>
+            <div class="qa-meta">
+              <span class="qa-author">${
+                ans.first_name || ans.last_name || ans.username || "Anonymous"
+              }</span>
+              <span class="qa-date">${new Date(ans.created_at).toLocaleString(
+                [],
+                {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }
+              )}</span>
+            </div>
+          </div>
+        `
+        )
+        .join("");
     }
 
-    answersDiv.innerHTML = answers
-      .map(
-        (ans) => `
-        <div class="answer-card">
-          <p>${ans.body}</p>
-          <div class="qa-meta">
-            <span class="qa-author">${
-              ans.first_name || ans.last_name || ans.username || "Anonymous"
-            }</span>
-            <span class="qa-date">${new Date(
-              ans.created_at
-            ).toLocaleString()}</span>
-          </div>
-        </div>
-      `
-      )
-      .join("");
+    button.textContent = "Hide Answers"; // change button after loading
   } catch (err) {
     console.error("Error loading answers:", err);
     answersDiv.innerHTML = `<p style="color:red; text-align:center;">Failed to load answers.</p>`;
+    button.textContent = "View Answers"; // reset on error
   }
 };
 
@@ -328,9 +414,13 @@ export const loadAdminPosts = async () => {
         <span class="qa-author">${
           post.first_name || post.last_name || post.username || "Anonymous"
         }</span>
-          <span class="qa-date">${new Date(
-            post.created_at
-          ).toLocaleString()}</span>
+          <span class="qa-date">${new Date(post.created_at).toLocaleString([], {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}</span>
         </div>
           <div id="admin-answers-${post.id}" class="admin-answers"></div>
           <textarea id="admin-answer-${
@@ -371,20 +461,22 @@ export const loadQuizzes = async () => {
       </div>
     `;
 
-    // Add CSS spinner animation (in case not in your stylesheet)
-    const style = document.createElement("style");
-    style.innerHTML = `
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(style);
+    // Ensure spinner animation exists
+    if (!document.getElementById("quiz-spinner-style")) {
+      const style = document.createElement("style");
+      style.id = "quiz-spinner-style";
+      style.innerHTML = `
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
 
     const quizzes = await fetchWithAuth(
       `${BASE_URL}/student/community/quizzes`
     );
-
     if (!quizzes.length) {
       container.innerHTML = `<p style="text-align:center;">No puzzles available yet.</p>`;
       return;
@@ -393,60 +485,55 @@ export const loadQuizzes = async () => {
     let currentIndex = 0;
 
     const showQuiz = (quiz) => {
-      // Show loader briefly before displaying each quiz
-      container.innerHTML = `
-        <div id="quiz-loader" style="text-align:center; padding:2rem;">
-          <div class="spinner" 
-               style="border:4px solid #ccc; border-top:4px solid #00ffff; border-radius:50%; width:40px; height:40px; margin:auto; animation:spin 1s linear infinite;">
-          </div>
-          <p>Loading next quiz...</p>
-        </div>
+      container.innerHTML = "";
+
+      const quizDiv = document.createElement("div");
+      quizDiv.classList.add("quiz-card");
+      quizDiv.innerHTML = `
+        <h4>${quiz.question}</h4>
+        <form id="quiz-form-${quiz.id}" class="quiz-form">
+          ${quiz.options
+            .map(
+              (opt) => `
+            <label>
+              <input type="radio" name="quiz-${quiz.id}" value="${opt}"> ${opt}
+            </label><br>`
+            )
+            .join("")}
+          <button type="submit" class="quiz-submit-btn">Submit Answer</button>
+        </form>
+        <div id="quiz-result-${
+          quiz.id
+        }" class="quiz-result" style="margin-top:10px;"></div>
       `;
 
-      setTimeout(() => {
-        container.innerHTML = "";
+      container.appendChild(quizDiv);
 
-        const quizDiv = document.createElement("div");
-        quizDiv.classList.add("quiz-card");
-        quizDiv.innerHTML = `
-          <h4>${quiz.question}</h4>
-          <form id="quiz-form-${quiz.id}" class="quiz-form">
-            ${quiz.options
-              .map(
-                (opt) => `
-              <label>
-                <input type="radio" name="quiz-${quiz.id}" value="${opt}"> ${opt}
-              </label><br>`
-              )
-              .join("")}
-            <button type="submit" class="quiz-submit-btn">Submit Answer</button>
-          </form>
-          <div id="quiz-result-${quiz.id}" class="quiz-result"></div>
-        `;
+      const form = document.getElementById(`quiz-form-${quiz.id}`);
+      const resultDiv = document.getElementById(`quiz-result-${quiz.id}`);
 
-        container.appendChild(quizDiv);
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const selected = form.querySelector(
+          `input[name="quiz-${quiz.id}"]:checked`
+        );
+        if (!selected) return alert("Please select an option.");
 
-        const form = document.getElementById(`quiz-form-${quiz.id}`);
+        // Show spinner below submit button
+        resultDiv.innerHTML = `<div class="loader" style="margin:10px auto;"></div>`;
 
-        form.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const selected = form.querySelector(
-            `input[name="quiz-${quiz.id}"]:checked`
-          );
-          if (!selected) return alert("Please select an option.");
+        try {
+          const res = await submitQuiz(quiz.id, selected.value);
 
-          await submitQuiz(quiz.id, selected.value);
+          // Display XP / message / correct answer
+          if (res.correct) {
+            resultDiv.innerHTML = `<span style="color:green">${res.message} (XP: ${res.xp}, Level: ${res.level})</span>`;
+          } else {
+            resultDiv.innerHTML = `<span style="color:red">${res.message}</span>
+                                   <br><small>Correct answer: ${res.correctAnswer}</small>`;
+          }
 
-          // Show loader for 2 seconds before moving to next quiz
-          container.innerHTML = `
-            <div id="quiz-loader" style="text-align:center; padding:2rem;">
-              <div class="spinner" 
-                   style="border:4px solid #ccc; border-top:4px solid #00ffff; border-radius:50%; width:40px; height:40px; margin:auto; animation:spin 1s linear infinite;">
-              </div>
-              <p>Loading next quiz...</p>
-            </div>
-          `;
-
+          // Automatically move to next quiz after 2s
           setTimeout(() => {
             currentIndex++;
             if (currentIndex < quizzes.length) {
@@ -455,8 +542,11 @@ export const loadQuizzes = async () => {
               container.innerHTML = `<p style="text-align:center; font-size:1.1rem;">🎉 Congratulations, you have completed all quizzes!</p>`;
             }
           }, 2000);
-        });
-      }, 1000); // brief delay for loader visibility
+        } catch (err) {
+          console.error("Error submitting quiz:", err);
+          resultDiv.innerHTML = `<span style="color:red;">Failed to submit quiz. Please try again.</span>`;
+        }
+      });
     };
 
     showQuiz(quizzes[currentIndex]);
@@ -483,18 +573,12 @@ export const submitQuiz = async (quizId, selectedOption) => {
       body: JSON.stringify({ quizId, userId, selectedOption }),
     });
 
-    const resultDiv = document.getElementById(`quiz-result-${quizId}`);
-    if (res.correct) {
-      resultDiv.innerHTML = `<span style="color:green">${res.message} (XP: ${res.xp}, Level: ${res.level})</span>`;
-    } else {
-      resultDiv.innerHTML = `<span style="color:red">${res.message}</span>
-                             <br><small>Correct answer: ${res.correctAnswer}</small>`;
-    }
+    loadLeaderboard(); // update leaderboard
 
-    loadLeaderboard();
+    return res; // Return response so loadQuizzes can handle display
   } catch (err) {
     console.error("Error submitting quiz:", err);
-    alert("Failed to submit quiz. Please try again.");
+    throw err;
   }
 };
 
