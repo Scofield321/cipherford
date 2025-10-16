@@ -24,6 +24,7 @@ router.use("/leaderboard", require("./leaderboard"));
 router.use("/qa", require("./qa"));
 router.use("/ai", require("./aiHugging"));
 router.use("/student/community", require("./studentCommunityRoutes"));
+router.use("/answer-reactions", require("./answerReactions"));
 
 // ✅ No catch-all here; 404 is handled in server.js
 

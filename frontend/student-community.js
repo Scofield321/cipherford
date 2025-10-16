@@ -34,9 +34,9 @@ export const loadCommunityPosts = async () => {
         <p>${post.body}</p>
 
         <div class="qa-meta">
-          <span class="qa-author">${
-            post.first_name || post.last_name || post.username || "Anonymous"
-          }</span>
+          <span class="qa-author">
+            ${(post.first_name || "") + " " + (post.last_name || "")}
+          </span>
           <span class="qa-date">${new Date(post.created_at).toLocaleString([], {
             year: "numeric",
             month: "short",
@@ -57,75 +57,244 @@ export const loadCommunityPosts = async () => {
 
       postsContainer.appendChild(postDiv);
 
-      // Attach click listener for "View Answers"
       const viewBtn = document.getElementById(`view-btn-${post.id}`);
       const answersDiv = document.getElementById(`answers-${post.id}`);
 
+      // Toggle answers
       viewBtn.addEventListener("click", async () => {
-        // Toggle answers
         if (answersDiv.style.display === "block") {
           answersDiv.style.display = "none";
           viewBtn.textContent = "View Answers";
           return;
         }
 
-        // Show loader
         answersDiv.style.display = "block";
         answersDiv.innerHTML = `<div class="loader"></div>`;
         viewBtn.textContent = "Loading...";
 
         try {
-          // ✅ Correct endpoint for fetching answers
           const answers = await fetchWithAuth(
             `${BASE_URL}/student/community/posts/${post.id}/answers`
           );
-          console.log("Answers for post", post.id, answers);
 
           if (!answers || answers.length === 0) {
             answersDiv.innerHTML = `<p style="text-align:center; color:#aaa;">No answers yet.</p>`;
           } else {
             answersDiv.innerHTML = answers
-              .map(
-                (ans) => `
-                <div class="answer-card">
-                  <p>${ans.answer}</p>
-                  <div class="qa-meta">
-                    <span class="qa-author">${
-                      ans.first_name ||
-                      ans.last_name ||
-                      ans.username ||
-                      "Anonymous"
-                    }</span>
-                    <span class="qa-date">${new Date(
-                      ans.created_at
-                    ).toLocaleString([], {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}</span>
-                  </div>
-                </div>
-              `
-              )
+              .map((ans) => {
+                const likesCount = ans.likes ?? 0;
+                const dislikesCount = ans.dislikes ?? 0;
+
+                return `
+                  <div class="answer-card" id="answer-card-${
+                    ans.id
+                  }" data-author-id="${ans.user_id}">
+                    <p>${ans.answer}</p>
+                    <div class="qa-meta">
+                      <span class="qa-author">${
+                        (ans.first_name || "") + " " + (ans.last_name || "")
+                      }</span>
+                      <span class="qa-date">${new Date(
+                        ans.created_at
+                      ).toLocaleString([], {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}</span>
+                    </div>
+
+                    <div class="answer-reactions">
+                      <button class="reaction-btn" data-answer-id="${
+                        ans.id
+                      }" data-type="like">
+                        👍 <span id="like-count-${ans.id}">${likesCount}</span>
+                      </button>
+                      <button class="reaction-btn" data-answer-id="${
+                        ans.id
+                      }" data-type="dislike">
+                        👎 <span id="dislike-count-${
+                          ans.id
+                        }">${dislikesCount}</span>
+                      </button>
+                      <button class="comment-btn" data-answer-id="${
+                        ans.id
+                      }">💬 Comment</button>
+                    </div>
+
+                    <div id="comments-${ans.id}" class="comments-section"></div>
+
+                    <div id="comment-form-${
+                      ans.id
+                    }" class="comment-form" style="display:none; margin-top:0.5rem;">
+                      <textarea id="comment-input-${
+                        ans.id
+                      }" placeholder="Write a comment"></textarea>
+                      <button id="submit-comment-${ans.id}">Submit</button>
+                    </div>
+                  </div>`;
+              })
               .join("");
           }
 
-          viewBtn.textContent = "Hide Answers"; // Update button
+          viewBtn.textContent = "Hide Answers";
+
+          // Attach reaction listeners
+          document.querySelectorAll(".reaction-btn").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              const answerId = btn.dataset.answerId;
+              const type = btn.dataset.type;
+
+              try {
+                const res = await fetchWithAuth(
+                  `${BASE_URL}/answer-reactions/${answerId}`,
+                  {
+                    method: "POST",
+                    body: JSON.stringify({ reaction_type: type }),
+                  }
+                );
+
+                if (res.likes !== undefined)
+                  document.getElementById(
+                    `like-count-${answerId}`
+                  ).textContent = res.likes;
+                if (res.dislikes !== undefined)
+                  document.getElementById(
+                    `dislike-count-${answerId}`
+                  ).textContent = res.dislikes;
+              } catch (err) {
+                console.error("Error reacting:", err);
+              }
+            });
+          });
+
+          // Handle comment form toggle and submission
+          document.querySelectorAll(".answer-card").forEach((card) => {
+            const answerId = card.id.replace("answer-card-", "");
+            const answerAuthorId = card.dataset.authorId;
+            const commentBtn = card.querySelector(".comment-btn");
+            const commentForm = card.querySelector(".comment-form");
+
+            commentBtn.addEventListener("click", async () => {
+              commentForm.style.display =
+                commentForm.style.display === "block" ? "none" : "block";
+              await loadAnswerComments(answerId, answerAuthorId);
+            });
+
+            const submitBtn = card.querySelector(`#submit-comment-${answerId}`);
+            submitBtn.addEventListener("click", async () => {
+              const commentInput = document.getElementById(
+                `comment-input-${answerId}`
+              );
+              const commentText = commentInput.value.trim();
+              if (!commentText) return alert("Please write a comment.");
+
+              try {
+                await fetchWithAuth(
+                  `${BASE_URL}/answer-reactions/${answerId}`,
+                  {
+                    method: "POST",
+                    body: JSON.stringify({ comment: commentText }),
+                  }
+                );
+                commentInput.value = "";
+                await loadAnswerComments(answerId, answerAuthorId);
+              } catch (err) {
+                console.error("Error submitting comment:", err);
+              }
+            });
+          });
         } catch (err) {
           console.error("Error loading answers:", err);
           answersDiv.innerHTML = `<p style="color:red; text-align:center;">Failed to load answers.</p>`;
-          viewBtn.textContent = "View Answers"; // Reset button on error
+          viewBtn.textContent = "View Answers";
         }
       });
 
-      // Attach submit listener
+      // Submit new answer
       const submitBtn = document.getElementById(`submit-btn-${post.id}`);
       submitBtn.addEventListener("click", () => submitAnswer(post.id));
     });
   } catch (err) {
     console.error("Error loading community posts:", err);
+  }
+};
+
+/**
+ * Load and display comments for a specific answer (with nested replies)
+ */
+export const loadAnswerComments = async (answerId, answerAuthorId) => {
+  const commentsDiv = document.getElementById(`comments-${answerId}`);
+  commentsDiv.innerHTML = `<div class="loader"></div>`;
+
+  try {
+    const data = await fetchWithAuth(
+      `${BASE_URL}/answer-reactions/${answerId}`
+    );
+
+    const renderComments = (comments, level = 0) => {
+      return comments
+        .map((comment) => {
+          return `
+            <div class="comment" style="margin-left:${level * 1.2}rem;">
+              <p><b>${comment.full_name}</b>: ${comment.comment}</p>
+              ${
+                comment.user_id === answerAuthorId
+                  ? `<button class="reply-btn" data-comment-id="${comment.id}" data-answer-id="${answerId}">↩ Reply</button>`
+                  : ""
+              }
+              ${
+                comment.replies && comment.replies.length > 0
+                  ? renderComments(comment.replies, level + 1)
+                  : ""
+              }
+            </div>
+          `;
+        })
+        .join("");
+    };
+
+    commentsDiv.innerHTML = renderComments(data.comments);
+
+    // Reply handling
+    commentsDiv.querySelectorAll(".reply-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const parentId = btn.dataset.commentId;
+        const ansId = btn.dataset.answerId;
+
+        const replyBox = document.createElement("div");
+        replyBox.classList.add("reply-box");
+        replyBox.innerHTML = `
+          <textarea class="reply-input" placeholder="Write your reply..."></textarea>
+          <button class="send-reply-btn">Send</button>
+        `;
+        btn.insertAdjacentElement("afterend", replyBox);
+
+        const sendBtn = replyBox.querySelector(".send-reply-btn");
+        sendBtn.addEventListener("click", async () => {
+          const replyText = replyBox.querySelector(".reply-input").value.trim();
+          if (!replyText) return;
+
+          try {
+            await fetchWithAuth(`${BASE_URL}/answer-reactions/${ansId}`, {
+              method: "POST",
+              body: JSON.stringify({
+                comment: replyText,
+                parent_comment_id: parentId,
+              }),
+            });
+            replyBox.remove();
+            await loadAnswerComments(ansId, answerAuthorId);
+          } catch (err) {
+            console.error("Error sending reply:", err);
+          }
+        });
+      });
+    });
+  } catch (err) {
+    console.error("Error loading comments:", err);
+    commentsDiv.innerHTML = `<p style="color:red;">Failed to load comments.</p>`;
   }
 };
 
@@ -149,7 +318,7 @@ window.loadAnswers = async (postId, event) => {
 
   try {
     const answers = await fetchWithAuth(
-      `${BASE_URL}/student/community/posts/${postId}/answers` // <-- use correct endpoint
+      `${BASE_URL}/student/community/posts/${postId}/answers`
     );
 
     if (!answers || answers.length === 0) {
@@ -445,68 +614,147 @@ export const loadAdminPosts = async () => {
 // ==============================
 // Load quizzes one by one
 // ==============================
+// import { BASE_URL } from "./config.js";
+// import { fetchWithAuth } from "./auth-utils.js";
+// import { submitQuiz } from "./student-quiz-submit.js";
+
 export const loadQuizzes = async () => {
   console.log("🎯 Loading quizzes...");
+
   try {
     const container = document.getElementById("community-quiz-container");
     if (!container) return;
 
-    // Show loader before fetching quizzes
-    container.innerHTML = `
-      <div id="quiz-loader" style="text-align:center; padding:2rem;">
-        <div class="spinner" 
-             style="border:4px solid #ccc; border-top:4px solid #00ffff; border-radius:50%; width:40px; height:40px; margin:auto; animation:spin 1s linear infinite;">
-        </div>
-        <p>Loading quizzes...</p>
-      </div>
-    `;
+    // Game state for current session only
+    let xp = 0;
+    let streak = 0;
+    let lives = 3;
 
-    // Ensure spinner animation exists
-    if (!document.getElementById("quiz-spinner-style")) {
+    // Core animations
+    if (!document.getElementById("quiz-game-style")) {
       const style = document.createElement("style");
-      style.id = "quiz-spinner-style";
+      style.id = "quiz-game-style";
       style.innerHTML = `
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fall { 0% { transform: translateY(0); opacity:1; } 100% { transform: translateY(100vh); opacity:0; } }
+        .spinner { border: 4px solid #ccc; border-top: 4px solid var(--accent-color, #00ffff); border-radius: 50%; width: 40px; height: 40px; margin: auto; animation: spin 1s linear infinite; }
       `;
       document.head.appendChild(style);
     }
+
+    // Initial loader
+    container.innerHTML = `
+      <div id="quiz-loader" class="quiz-loader">
+        <div class="spinner"></div>
+        <p>Loading quizzes...</p>
+      </div>
+    `;
 
     const quizzes = await fetchWithAuth(
       `${BASE_URL}/student/community/quizzes`
     );
     if (!quizzes.length) {
-      container.innerHTML = `<p style="text-align:center;">No puzzles available yet.</p>`;
+      container.innerHTML = `<p class="no-quizzes">No quizzes available yet.</p>`;
       return;
     }
 
     let currentIndex = 0;
 
+    // Sounds
+    const correctSound = new Audio("./applause-cheer.mp3");
+    const wrongSound = new Audio("./crowd-disappointment-reaction.mp3");
+    const playSafe = (sound) => {
+      try {
+        sound.currentTime = 0;
+        const playPromise = sound.play();
+        if (playPromise !== undefined) playPromise.catch(() => {});
+      } catch (err) {
+        console.warn("Sound skipped:", err);
+      }
+    };
+
+    // Confetti
+    const triggerConfetti = () => {
+      const confetti = document.createElement("div");
+      confetti.innerHTML = "🎉";
+      confetti.style.position = "fixed";
+      confetti.style.left = `${Math.random() * 100}%`;
+      confetti.style.top = "0";
+      confetti.style.fontSize = "2rem";
+      confetti.style.animation = "fall 2s linear";
+      document.body.appendChild(confetti);
+      setTimeout(() => confetti.remove(), 2000);
+    };
+
+    // Flying coins
+    const triggerCoins = (count = 5) => {
+      for (let i = 0; i < count; i++) {
+        const coin = document.createElement("div");
+        coin.innerHTML = "💰";
+        coin.style.position = "fixed";
+        coin.style.left = `${Math.random() * 80 + 10}%`;
+        coin.style.bottom = "0";
+        coin.style.fontSize = `${Math.random() * 20 + 20}px`;
+        coin.style.zIndex = 9999;
+        coin.style.pointerEvents = "none";
+        coin.style.opacity = 1;
+        document.body.appendChild(coin);
+        coin.animate(
+          [
+            { transform: `translateY(0px) scale(1)`, opacity: 1 },
+            {
+              transform: `translateY(-200px) scale(0.5) rotate(${
+                Math.random() * 360
+              }deg)`,
+              opacity: 0,
+            },
+          ],
+          {
+            duration: 1000 + Math.random() * 500,
+            easing: "ease-out",
+            fill: "forwards",
+          }
+        );
+        setTimeout(() => coin.remove(), 1500);
+      }
+    };
+
+    const updateProgress = () => {
+      const fill = document.querySelector(".progress-fill");
+      if (fill) fill.style.width = `${xp % 100}%`;
+    };
+
+    const renderGameHeader = () => `
+      <div class="game-header">
+        <span class="xp-display">XP: ${xp}</span>
+        <span class="streak-display">🔥 Streak: ${streak}</span>
+        <span class="lives-display">❤️ Lives: ${lives}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${xp % 100}%"></div>
+      </div>
+    `;
+
     const showQuiz = (quiz) => {
-      container.innerHTML = "";
+      container.innerHTML = renderGameHeader();
 
       const quizDiv = document.createElement("div");
       quizDiv.classList.add("quiz-card");
       quizDiv.innerHTML = `
-        <h4>${quiz.question}</h4>
+        <h4 class="quiz-question">${quiz.question}</h4>
         <form id="quiz-form-${quiz.id}" class="quiz-form">
           ${quiz.options
             .map(
               (opt) => `
-            <label>
+            <label class="quiz-option">
               <input type="radio" name="quiz-${quiz.id}" value="${opt}"> ${opt}
             </label><br>`
             )
             .join("")}
           <button type="submit" class="quiz-submit-btn">Submit Answer</button>
         </form>
-        <div id="quiz-result-${
-          quiz.id
-        }" class="quiz-result" style="margin-top:10px;"></div>
+        <div id="quiz-result-${quiz.id}" class="quiz-result"></div>
       `;
-
       container.appendChild(quizDiv);
 
       const form = document.getElementById(`quiz-form-${quiz.id}`);
@@ -519,32 +767,45 @@ export const loadQuizzes = async () => {
         );
         if (!selected) return alert("Please select an option.");
 
-        // Show spinner below submit button
-        resultDiv.innerHTML = `<div class="loader" style="margin:10px auto;"></div>`;
+        resultDiv.innerHTML = `<div class="spinner" style="margin:10px auto;"></div>`;
 
         try {
           const res = await submitQuiz(quiz.id, selected.value);
+          resultDiv.innerHTML = "";
 
-          // Display XP / message / correct answer
           if (res.correct) {
-            resultDiv.innerHTML = `<span style="color:green">${res.message} (XP: ${res.xp}, Level: ${res.level})</span>`;
+            playSafe(correctSound);
+            triggerConfetti();
+            triggerCoins(5);
+            xp += res.xp || 10;
+            streak++;
+            resultDiv.innerHTML = `<span class="quiz-correct">✅ ${res.message} +${res.xp} XP</span>`;
           } else {
-            resultDiv.innerHTML = `<span style="color:red">${res.message}</span>
-                                   <br><small>Correct answer: ${res.correctAnswer}</small>`;
+            playSafe(wrongSound);
+            lives--;
+            streak = 0;
+            resultDiv.innerHTML = `
+              <span class="quiz-wrong">❌ ${res.message}</span><br>
+              <small class="quiz-correct-answer">Correct: ${res.correctAnswer}</small>
+            `;
           }
 
-          // Automatically move to next quiz after 2s
+          updateProgress();
+
+          if (lives <= 0) {
+            container.innerHTML = `<p class="quiz-game-over">💀 Game Over! Try again later.</p>`;
+            return;
+          }
+
           setTimeout(() => {
             currentIndex++;
-            if (currentIndex < quizzes.length) {
-              showQuiz(quizzes[currentIndex]);
-            } else {
-              container.innerHTML = `<p style="text-align:center; font-size:1.1rem;">🎉 Congratulations, you have completed all quizzes!</p>`;
-            }
+            if (currentIndex < quizzes.length) showQuiz(quizzes[currentIndex]);
+            else
+              container.innerHTML = `<p class="quiz-complete">🎉 You completed all quizzes! Total XP: ${xp}</p>`;
           }, 2000);
         } catch (err) {
           console.error("Error submitting quiz:", err);
-          resultDiv.innerHTML = `<span style="color:red;">Failed to submit quiz. Please try again.</span>`;
+          resultDiv.innerHTML = `<span class="quiz-error">Failed to submit quiz. Try again.</span>`;
         }
       });
     };
@@ -554,7 +815,7 @@ export const loadQuizzes = async () => {
     console.error("❌ Error loading quizzes:", err);
     const container = document.getElementById("community-quiz-container");
     if (container)
-      container.innerHTML = `<p style='color:red; text-align:center;'>Failed to load puzzles.</p>`;
+      container.innerHTML = `<p class="quiz-error">Failed to load quizzes.</p>`;
   }
 };
 

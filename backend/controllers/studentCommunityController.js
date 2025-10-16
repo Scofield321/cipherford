@@ -148,8 +148,10 @@ const submitAnswer = async (req, res) => {
  */
 const getAnswersForPost = async (req, res) => {
   const { postId } = req.params;
+  const userId = req.user.id; // current user
 
   try {
+    // Fetch answers
     const result = await db.query(
       `SELECT a.*, u.first_name, u.last_name
        FROM community_answers a
@@ -158,7 +160,40 @@ const getAnswersForPost = async (req, res) => {
        ORDER BY a.created_at DESC`,
       [postId]
     );
-    res.status(200).json(result.rows);
+
+    const answers = result.rows;
+
+    // Fetch reactions and comments for each answer
+    for (let ans of answers) {
+      // Get likes/dislikes counts and user reaction
+      const countsRes = await db.query(
+        `SELECT
+           COUNT(*) FILTER (WHERE reaction_type='like') AS likes,
+           COUNT(*) FILTER (WHERE reaction_type='dislike') AS dislikes,
+           MAX(CASE WHEN user_id=$2 THEN reaction_type END) AS user_reaction
+         FROM community_answer_reactions
+         WHERE answer_id=$1`,
+        [ans.id, userId]
+      );
+
+      ans.likes = parseInt(countsRes.rows[0].likes);
+      ans.dislikes = parseInt(countsRes.rows[0].dislikes);
+      ans.user_reaction = countsRes.rows[0].user_reaction || null;
+
+      // Get comments
+      const commentsRes = await db.query(
+        `SELECT r.id, r.comment, r.user_id, r.created_at, u.first_name, u.last_name
+         FROM community_answer_reactions r
+         JOIN users u ON r.user_id = u.id
+         WHERE r.answer_id=$1 AND r.comment IS NOT NULL
+         ORDER BY r.created_at ASC`,
+        [ans.id]
+      );
+
+      ans.comments = commentsRes.rows;
+    }
+
+    res.status(200).json(answers);
   } catch (err) {
     console.error("Error fetching answers:", err.message);
     res.status(500).json({ error: "Failed to fetch answers" });
@@ -183,7 +218,7 @@ const getQuizzes = async (req, res) => {
     const quizzes = result.rows.map((q) => ({
       id: q.id,
       question: q.question,
-      options: q.options, // Already an array from Postgres
+      options: q.options,
       tags: q.tags,
     }));
 
@@ -366,6 +401,42 @@ const getAdminPosts = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch admin posts" });
   }
 };
+// Add a reply to a comment
+const addCommentReply = async (req, res) => {
+  const { commentId } = req.params; // parent comment id
+  const { comment } = req.body;
+  const user_id = req.user.id;
+
+  if (!comment)
+    return res.status(400).json({ error: "Comment cannot be empty." });
+
+  try {
+    // Fetch the parent comment to get the answer_id
+    const parent = await db.query(
+      `SELECT * FROM community_answer_reactions WHERE id = $1`,
+      [commentId]
+    );
+
+    if (parent.rowCount === 0)
+      return res.status(404).json({ error: "Parent comment not found." });
+
+    const parentComment = parent.rows[0];
+
+    // Insert reply
+    const result = await db.query(
+      `INSERT INTO community_answer_reactions 
+        (answer_id, user_id, comment, parent_comment_id, created_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       RETURNING *`,
+      [parentComment.answer_id, user_id, comment, commentId]
+    );
+
+    res.status(201).json({ reply: result.rows[0] });
+  } catch (err) {
+    console.error("❌ Error adding reply:", err);
+    res.status(500).json({ error: "Failed to add reply." });
+  }
+};
 
 module.exports = {
   getCommunityPosts,
@@ -376,4 +447,5 @@ module.exports = {
   submitQuiz,
   getLeaderboard,
   getAdminPosts,
+  addCommentReply,
 };

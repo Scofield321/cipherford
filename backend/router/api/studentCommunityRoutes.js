@@ -23,4 +23,10 @@ router.post("/quizzes/submit", auth, studentCommunityController.submitQuiz);
 // Admin Posts
 router.get("/admin-posts", auth, studentCommunityController.getAdminPosts);
 
+router.post(
+  "/reply/:commentId",
+  auth,
+  studentCommunityController.addCommentReply
+);
+
 module.exports = router;
