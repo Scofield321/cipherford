@@ -19,6 +19,7 @@ export async function initCommunityRouter() {
     puzzles: section.querySelector("#community-puzzles"),
     "admin-posts": section.querySelector("#community-admin-posts"),
     leaderboard: section.querySelector("#community-leaderboard"),
+    "pending-posts": section.querySelector("#pending-posts-section"),
   };
 
   async function showTab(tab) {

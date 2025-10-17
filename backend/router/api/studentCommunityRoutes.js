@@ -12,21 +12,29 @@ router.get(
   auth,
   studentCommunityController.getAnswersForPost
 );
-
 // Leaderboard
 router.get("/leaderboard", auth, studentCommunityController.getLeaderboard);
-
 // Quizzes routes
 router.get("/quizzes", auth, studentCommunityController.getQuizzes);
 router.post("/quizzes/submit", auth, studentCommunityController.submitQuiz);
-
 // Admin Posts
 router.get("/admin-posts", auth, studentCommunityController.getAdminPosts);
-
 router.post(
   "/reply/:commentId",
   auth,
   studentCommunityController.addCommentReply
 );
+// Edit an answer (only author or admin)
+router.put("/answers/:answerId", auth, studentCommunityController.updateAnswer);
+// Delete an answer (only author or admin)
+router.delete(
+  "/answers/:answerId",
+  auth,
+  studentCommunityController.deleteAnswer
+);
 
+// Edit a post (only author or admin)
+router.put("/posts/:postId", auth, studentCommunityController.updatePost);
+// Delete post (only author or admin)
+router.delete("/posts/:postId", auth, studentCommunityController.deletePost);
 module.exports = router;

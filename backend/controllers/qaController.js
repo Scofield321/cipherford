@@ -1,19 +1,34 @@
 const db = require("../config/db");
 
 const allQuestionsAndAnswers = async (req, res) => {
-  const { type } = req.query;
-  if (!["question", "challenge"].includes(type)) {
-    return res.status(400).json({ error: "Invalid post type" });
+  const { type, status } = req.query;
+
+  let query = "SELECT * FROM community_posts WHERE 1=1";
+  const params = [];
+  let paramIndex = 1;
+
+  if (type) {
+    if (!["question", "challenge"].includes(type)) {
+      return res.status(400).json({ error: "Invalid post type" });
+    }
+    query += ` AND type = $${paramIndex}`;
+    params.push(type);
+    paramIndex++;
   }
 
-  try {
-    const result = await db.query(
-      `SELECT * FROM community_posts
-       WHERE type = $1
-       ORDER BY created_at DESC`,
-      [type]
-    );
+  if (status) {
+    if (!["pending", "approved", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+    query += ` AND status = $${paramIndex}`;
+    params.push(status);
+    paramIndex++;
+  }
 
+  query += " ORDER BY created_at DESC";
+
+  try {
+    const result = await db.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error("Error fetching posts:", err);
@@ -135,6 +150,69 @@ const deletePost = async (req, res) => {
   }
 };
 
+// Approve a post
+const approvePost = async (req, res) => {
+  const { postId } = req.params;
+  const userRole = req.user.role;
+
+  if (userRole !== "admin") {
+    return res.status(403).json({ error: "Unauthorized: Admins only" });
+  }
+
+  try {
+    const result = await db.query(
+      `UPDATE community_posts
+       SET status = 'approved'
+       WHERE id = $1
+       RETURNING *`,
+      [postId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    res.json({ message: "Post approved successfully", post: result.rows[0] });
+  } catch (err) {
+    console.error("Error approving post:", err);
+    res.status(500).json({ error: "Failed to approve post" });
+  }
+};
+
+// Reject a post
+const rejectPost = async (req, res) => {
+  const { postId } = req.params;
+  const { reason } = req.body;
+  const userRole = req.user.role;
+
+  if (userRole !== "admin") {
+    return res.status(403).json({ error: "Unauthorized: Admins only" });
+  }
+
+  if (!reason) {
+    return res.status(400).json({ error: "Rejection reason is required" });
+  }
+
+  try {
+    const result = await db.query(
+      `UPDATE community_posts
+       SET status = 'rejected', rejection_reason = $2
+       WHERE id = $1
+       RETURNING *`,
+      [postId, reason]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    res.json({ message: "Post rejected successfully", post: result.rows[0] });
+  } catch (err) {
+    console.error("Error rejecting post:", err);
+    res.status(500).json({ error: "Failed to reject post" });
+  }
+};
+
 module.exports = {
   allQuestionsAndAnswers,
   answers,
@@ -142,4 +220,6 @@ module.exports = {
   createQuestions,
   adminPosts,
   deletePost,
+  approvePost,
+  rejectPost,
 };

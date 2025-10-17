@@ -4,6 +4,7 @@ import { BASE_URL } from "./config.js";
 // ==============================
 // Utility to fetch with auth token
 // ==============================
+
 const fetchWithAuth = async (url, options = {}) => {
   const token = Session.token();
   options.headers = {
@@ -25,13 +26,42 @@ export const loadCommunityPosts = async () => {
     const postsContainer = document.getElementById("community-qa-posts");
     postsContainer.innerHTML = "";
 
-    posts.forEach((post) => {
+    // ===== USER INFO =====
+    const token = Session.token();
+    let currentUserId = null;
+    let isAdmin = false;
+    if (token) {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      currentUserId = payload.userId || payload.id;
+      isAdmin = payload.role === "admin";
+    }
+
+    // ===== FILTER POSTS =====
+    const visiblePosts = posts.filter(
+      (post) =>
+        isAdmin || post.status === "approved" || post.user_id === currentUserId
+    );
+
+    for (const post of visiblePosts) {
       const postDiv = document.createElement("div");
       postDiv.classList.add("qa-card");
+      postDiv.id = `post-card-${post.id}`;
 
+      // ===== STATUS LABELS =====
+      let statusLabel = "";
+      if (post.status === "pending") {
+        statusLabel = `<span class="post-status pending">⏳ Pending approval</span>`;
+      } else if (post.status === "rejected") {
+        statusLabel = `<span class="post-status rejected">❌ Rejected${
+          post.rejection_reason ? `: ${post.rejection_reason}` : ""
+        }</span>`;
+      }
+
+      // ===== POST HTML =====
       postDiv.innerHTML = `
         <h4 class="qa-title">${post.title}</h4>
         <p>${post.body}</p>
+        ${statusLabel}
 
         <div class="qa-meta">
           <span class="qa-author">
@@ -46,21 +76,94 @@ export const loadCommunityPosts = async () => {
           })}</span>
         </div>
 
-        <button id="view-btn-${post.id}">View Answers</button>
+        <div class="qa-actions">
+          <button id="view-btn-${post.id}">View Answers</button>
+          <textarea id="answer-input-${
+            post.id
+          }" placeholder="Your answer" rows="5"></textarea>
+          <button id="submit-btn-${post.id}">Submit</button>
+        </div>
+
         <div id="answers-${post.id}" class="answers-section"></div>
 
-        <textarea id="answer-input-${
-          post.id
-        }" placeholder="Your answer" rows="5"></textarea>
-        <button id="submit-btn-${post.id}">Submit</button>
+        ${
+          isAdmin || currentUserId === post.user_id
+            ? `<div class="post-actions">
+                 <button class="edit-post-btn" data-post-id="${post.id}">✏️ Edit</button>
+                 <button class="delete-post-btn" data-post-id="${post.id}">🗑️ Delete</button>
+               </div>`
+            : ""
+        }
       `;
 
       postsContainer.appendChild(postDiv);
 
-      const viewBtn = document.getElementById(`view-btn-${post.id}`);
-      const answersDiv = document.getElementById(`answers-${post.id}`);
+      // ===== REJECTED POST RESUBMIT =====
+      if (post.status === "rejected") {
+        const resubmitBtn = document.createElement("button");
+        resubmitBtn.textContent = "Resubmit";
+        resubmitBtn.className = "resubmit-btn";
+        resubmitBtn.style.marginTop = "0.5rem";
 
-      // Toggle answers
+        resubmitBtn.addEventListener("click", async () => {
+          const newTitle = prompt("Edit post title:", post.title);
+          if (!newTitle) return;
+
+          const newBody = prompt("Edit post body:", post.body);
+          if (!newBody) return;
+
+          try {
+            const response = await fetchWithAuth(
+              `${BASE_URL}/student/community/posts/${post.id}`,
+              {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  title: newTitle,
+                  body: newBody,
+                  status: "pending",
+                }),
+              }
+            );
+
+            // Parse the JSON response
+            const data = await response.json();
+
+            // Check if the request was successful
+            if (!response.ok) {
+              alert(
+                `❌ Failed to resubmit post: ${data.error || "Unknown error"}`
+              );
+              return;
+            }
+
+            // Remove the post from the DOM
+            postDiv.remove();
+
+            alert("✅ Post resubmitted for approval!");
+          } catch (err) {
+            console.error("Error resubmitting post:", err);
+            alert("❌ Failed to resubmit post due to network or server error.");
+          }
+        });
+
+        postDiv.appendChild(resubmitBtn);
+      }
+
+      // ===== DISABLE ANSWERS IF NOT APPROVED =====
+      const submitBtn = postDiv.querySelector(`#submit-btn-${post.id}`);
+      const answerInput = postDiv.querySelector(`#answer-input-${post.id}`);
+      if (post.status !== "approved") {
+        submitBtn.disabled = true;
+        answerInput.placeholder = "Cannot answer until post is approved";
+      } else {
+        submitBtn.addEventListener("click", () => submitAnswer(post.id));
+      }
+
+      // ===== VIEW ANSWERS =====
+      const viewBtn = postDiv.querySelector(`#view-btn-${post.id}`);
+      const answersDiv = postDiv.querySelector(`#answers-${post.id}`);
+
       viewBtn.addEventListener("click", async () => {
         if (answersDiv.style.display === "block") {
           answersDiv.style.display = "none";
@@ -68,7 +171,6 @@ export const loadCommunityPosts = async () => {
           return;
         }
 
-        answersDiv.style.display = "block";
         answersDiv.innerHTML = `<div class="loader"></div>`;
         viewBtn.textContent = "Loading...";
 
@@ -77,145 +179,149 @@ export const loadCommunityPosts = async () => {
             `${BASE_URL}/student/community/posts/${post.id}/answers`
           );
 
-          if (!answers || answers.length === 0) {
+          if (!answers.length) {
             answersDiv.innerHTML = `<p style="text-align:center; color:#aaa;">No answers yet.</p>`;
           } else {
             answersDiv.innerHTML = answers
-              .map((ans) => {
-                const likesCount = ans.likes ?? 0;
-                const dislikesCount = ans.dislikes ?? 0;
+              .map(
+                (ans) => `
+                <div class="answer-card" id="answer-card-${
+                  ans.id
+                }" data-author-id="${ans.user_id}">
+                  <p>${ans.answer}</p>
+                  <div class="qa-meta">
+                    <span class="qa-author">${
+                      (ans.first_name || "") + " " + (ans.last_name || "")
+                    }</span>
+                    <span class="qa-date">${new Date(
+                      ans.created_at
+                    ).toLocaleString([], {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}</span>
+                  </div>
 
-                return `
-                  <div class="answer-card" id="answer-card-${
-                    ans.id
-                  }" data-author-id="${ans.user_id}">
-                    <p>${ans.answer}</p>
-                    <div class="qa-meta">
-                      <span class="qa-author">${
-                        (ans.first_name || "") + " " + (ans.last_name || "")
-                      }</span>
-                      <span class="qa-date">${new Date(
-                        ans.created_at
-                      ).toLocaleString([], {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}</span>
-                    </div>
-
-                    <div class="answer-reactions">
-                      <button class="reaction-btn" data-answer-id="${
-                        ans.id
-                      }" data-type="like">
-                        👍 <span id="like-count-${ans.id}">${likesCount}</span>
-                      </button>
-                      <button class="reaction-btn" data-answer-id="${
-                        ans.id
-                      }" data-type="dislike">
-                        👎 <span id="dislike-count-${
-                          ans.id
-                        }">${dislikesCount}</span>
-                      </button>
-                      <button class="comment-btn" data-answer-id="${
-                        ans.id
-                      }">💬 Comment</button>
-                    </div>
-
-                    <div id="comments-${ans.id}" class="comments-section"></div>
-
-                    <div id="comment-form-${
+                  <div class="answer-reactions">
+                    <button class="reaction-btn" data-answer-id="${
                       ans.id
-                    }" class="comment-form" style="display:none; margin-top:0.5rem;">
-                      <textarea id="comment-input-${
-                        ans.id
-                      }" placeholder="Write a comment"></textarea>
-                      <button id="submit-comment-${ans.id}">Submit</button>
-                    </div>
-                  </div>`;
-              })
+                    }" data-type="like">
+                      👍 <span id="like-count-${ans.id}">${
+                  ans.likes ?? 0
+                }</span>
+                    </button>
+                    <button class="reaction-btn" data-answer-id="${
+                      ans.id
+                    }" data-type="dislike">
+                      👎 <span id="dislike-count-${ans.id}">${
+                  ans.dislikes ?? 0
+                }</span>
+                    </button>
+                    <button class="comment-btn" data-answer-id="${
+                      ans.id
+                    }" data-author-id="${ans.user_id}">
+                      💬 Comments
+                    </button>
+                  </div>
+
+                  <div id="comments-${ans.id}" class="comments-section"></div>
+                </div>
+              `
+              )
               .join("");
-          }
 
-          viewBtn.textContent = "Hide Answers";
+            // ===== REACTIONS =====
+            answersDiv.querySelectorAll(".reaction-btn").forEach((btn) => {
+              btn.addEventListener("click", async () => {
+                const answerId = btn.dataset.answerId;
+                const type = btn.dataset.type;
 
-          // Attach reaction listeners
-          document.querySelectorAll(".reaction-btn").forEach((btn) => {
-            btn.addEventListener("click", async () => {
-              const answerId = btn.dataset.answerId;
-              const type = btn.dataset.type;
+                try {
+                  const data = await fetchWithAuth(
+                    `${BASE_URL}/answer-reactions/${answerId}`,
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ reaction_type: type }),
+                    }
+                  );
 
-              try {
-                const res = await fetchWithAuth(
-                  `${BASE_URL}/answer-reactions/${answerId}`,
-                  {
-                    method: "POST",
-                    body: JSON.stringify({ reaction_type: type }),
-                  }
-                );
-
-                if (res.likes !== undefined)
+                  // Update DOM counts
                   document.getElementById(
                     `like-count-${answerId}`
-                  ).textContent = res.likes;
-                if (res.dislikes !== undefined)
+                  ).textContent = data.likes;
                   document.getElementById(
                     `dislike-count-${answerId}`
-                  ).textContent = res.dislikes;
-              } catch (err) {
-                console.error("Error reacting:", err);
-              }
-            });
-          });
-
-          // Handle comment form toggle and submission
-          document.querySelectorAll(".answer-card").forEach((card) => {
-            const answerId = card.id.replace("answer-card-", "");
-            const answerAuthorId = card.dataset.authorId;
-            const commentBtn = card.querySelector(".comment-btn");
-            const commentForm = card.querySelector(".comment-form");
-
-            commentBtn.addEventListener("click", async () => {
-              commentForm.style.display =
-                commentForm.style.display === "block" ? "none" : "block";
-              await loadAnswerComments(answerId, answerAuthorId);
+                  ).textContent = data.dislikes;
+                } catch (err) {
+                  console.error("Error reacting:", err);
+                  alert(err.message || "Failed to react");
+                }
+              });
             });
 
-            const submitBtn = card.querySelector(`#submit-comment-${answerId}`);
-            submitBtn.addEventListener("click", async () => {
-              const commentInput = document.getElementById(
-                `comment-input-${answerId}`
-              );
-              const commentText = commentInput.value.trim();
-              if (!commentText) return alert("Please write a comment.");
-
-              try {
-                await fetchWithAuth(
-                  `${BASE_URL}/answer-reactions/${answerId}`,
-                  {
-                    method: "POST",
-                    body: JSON.stringify({ comment: commentText }),
-                  }
-                );
-                commentInput.value = "";
-                await loadAnswerComments(answerId, answerAuthorId);
-              } catch (err) {
-                console.error("Error submitting comment:", err);
-              }
+            // ===== COMMENTS =====
+            answersDiv.querySelectorAll(".comment-btn").forEach((btn) => {
+              btn.addEventListener("click", () => {
+                const answerId = btn.dataset.answerId;
+                const authorId = btn.dataset.authorId;
+                loadAnswerComments(answerId, authorId);
+              });
             });
-          });
+          }
+
+          answersDiv.style.display = "block";
+          viewBtn.textContent = "Hide Answers";
         } catch (err) {
           console.error("Error loading answers:", err);
-          answersDiv.innerHTML = `<p style="color:red; text-align:center;">Failed to load answers.</p>`;
+          answersDiv.innerHTML = `<p style="color:red;">Failed to load answers.</p>`;
           viewBtn.textContent = "View Answers";
         }
       });
 
-      // Submit new answer
-      const submitBtn = document.getElementById(`submit-btn-${post.id}`);
-      submitBtn.addEventListener("click", () => submitAnswer(post.id));
-    });
+      // ===== EDIT & DELETE =====
+      if (isAdmin || currentUserId === post.user_id) {
+        const editBtn = postDiv.querySelector(".edit-post-btn");
+        const deleteBtn = postDiv.querySelector(".delete-post-btn");
+
+        editBtn?.addEventListener("click", async () => {
+          const newTitle = prompt("Edit title:", post.title);
+          const newBody = prompt("Edit body:", post.body);
+          if (!newTitle || !newBody) return;
+
+          try {
+            await fetchWithAuth(
+              `${BASE_URL}/student/community/posts/${post.id}`,
+              {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: newTitle, body: newBody }),
+              }
+            );
+            alert("Post updated!");
+            await loadCommunityPosts();
+          } catch (err) {
+            console.error("Error updating:", err);
+          }
+        });
+
+        deleteBtn?.addEventListener("click", async () => {
+          if (!confirm("Are you sure you want to delete this post?")) return;
+          try {
+            await fetchWithAuth(
+              `${BASE_URL}/student/community/posts/${post.id}`,
+              { method: "DELETE" }
+            );
+            postDiv.remove();
+            alert("Deleted successfully!");
+          } catch (err) {
+            console.error("Error deleting:", err);
+          }
+        });
+      }
+    }
   } catch (err) {
     console.error("Error loading community posts:", err);
   }
@@ -226,76 +332,141 @@ export const loadCommunityPosts = async () => {
  */
 export const loadAnswerComments = async (answerId, answerAuthorId) => {
   const commentsDiv = document.getElementById(`comments-${answerId}`);
+  if (!commentsDiv) return;
+
   commentsDiv.innerHTML = `<div class="loader"></div>`;
 
   try {
     const data = await fetchWithAuth(
       `${BASE_URL}/answer-reactions/${answerId}`
     );
+    const comments = data.comments || [];
 
+    // Recursive renderer for nested comments
     const renderComments = (comments, level = 0) => {
       return comments
-        .map((comment) => {
-          return `
-            <div class="comment" style="margin-left:${level * 1.2}rem;">
+        .map(
+          (comment) => `
+            <div class="comment" style="margin-left:${
+              level * 1.2
+            }rem; border-left:1px solid #ccc; padding-left:0.5rem; margin-top:0.4rem;">
               <p><b>${comment.full_name}</b>: ${comment.comment}</p>
+              <small style="color:gray;">${new Date(
+                comment.created_at
+              ).toLocaleString()}</small>
+              <div class="comment-actions" style="margin-top:0.3rem;">
+                <button class="reply-btn" data-comment-id="${
+                  comment.id
+                }" data-answer-id="${answerId}">
+                  ↩ Reply
+                </button>
+              </div>
               ${
-                comment.user_id === answerAuthorId
-                  ? `<button class="reply-btn" data-comment-id="${comment.id}" data-answer-id="${answerId}">↩ Reply</button>`
-                  : ""
-              }
-              ${
-                comment.replies && comment.replies.length > 0
+                comment.replies && comment.replies.length
                   ? renderComments(comment.replies, level + 1)
                   : ""
               }
             </div>
-          `;
-        })
+          `
+        )
         .join("");
     };
 
-    commentsDiv.innerHTML = renderComments(data.comments);
+    // Comments HTML
+    let commentsHTML =
+      comments.length > 0
+        ? renderComments(comments)
+        : `<p style="color:#777; text-align:center;">No comments yet.</p>`;
 
-    // Reply handling
+    // Root comment input
+    commentsHTML += `
+      <div class="root-comment-box" style="margin-top:1rem;">
+        <textarea id="new-comment-${answerId}" placeholder="Write a comment..." rows="2" style="width:100%;"></textarea>
+        <button id="post-comment-${answerId}" class="post-comment-btn" style="margin-top:0.4rem;">💬 Post Comment</button>
+      </div>
+    `;
+
+    commentsDiv.innerHTML = commentsHTML;
+
+    // Bind reply events
     commentsDiv.querySelectorAll(".reply-btn").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const parentId = btn.dataset.commentId;
-        const ansId = btn.dataset.answerId;
-
-        const replyBox = document.createElement("div");
-        replyBox.classList.add("reply-box");
-        replyBox.innerHTML = `
-          <textarea class="reply-input" placeholder="Write your reply..."></textarea>
-          <button class="send-reply-btn">Send</button>
-        `;
-        btn.insertAdjacentElement("afterend", replyBox);
-
-        const sendBtn = replyBox.querySelector(".send-reply-btn");
-        sendBtn.addEventListener("click", async () => {
-          const replyText = replyBox.querySelector(".reply-input").value.trim();
-          if (!replyText) return;
-
-          try {
-            await fetchWithAuth(`${BASE_URL}/answer-reactions/${ansId}`, {
-              method: "POST",
-              body: JSON.stringify({
-                comment: replyText,
-                parent_comment_id: parentId,
-              }),
-            });
-            replyBox.remove();
-            await loadAnswerComments(ansId, answerAuthorId);
-          } catch (err) {
-            console.error("Error sending reply:", err);
-          }
-        });
-      });
+      btn.addEventListener("click", () => showReplyBox(btn, answerAuthorId));
     });
+
+    // Bind root comment event
+    const postCommentBtn = document.getElementById(`post-comment-${answerId}`);
+    const commentInput = document.getElementById(`new-comment-${answerId}`);
+
+    if (postCommentBtn) {
+      postCommentBtn.addEventListener("click", async () => {
+        const text = commentInput.value.trim();
+        if (!text) return;
+
+        try {
+          await fetchWithAuth(`${BASE_URL}/answer-reactions/${answerId}`, {
+            method: "POST",
+            body: JSON.stringify({
+              comment: text,
+              parent_comment_id: null,
+            }),
+          });
+
+          commentInput.value = "";
+          await loadAnswerComments(answerId, answerAuthorId);
+        } catch (err) {
+          console.error("Error posting comment:", err);
+          alert("❌ Failed to post comment.");
+        }
+      });
+    }
   } catch (err) {
     console.error("Error loading comments:", err);
     commentsDiv.innerHTML = `<p style="color:red;">Failed to load comments.</p>`;
   }
+};
+
+// Helper: reply box
+const showReplyBox = (btn, answerAuthorId) => {
+  const parentId = btn.dataset.commentId;
+  const answerId = btn.dataset.answerId;
+
+  if (
+    btn.nextElementSibling &&
+    btn.nextElementSibling.classList.contains("reply-box")
+  )
+    return;
+
+  const replyBox = document.createElement("div");
+  replyBox.classList.add("reply-box");
+  replyBox.style.marginTop = "0.5rem";
+  replyBox.innerHTML = `
+    <textarea class="reply-input" placeholder="Write your reply..." rows="2" style="width:100%;"></textarea>
+    <button class="send-reply-btn" style="margin-top:0.3rem;">Send</button>
+  `;
+
+  btn.insertAdjacentElement("afterend", replyBox);
+
+  const sendBtn = replyBox.querySelector(".send-reply-btn");
+  sendBtn.addEventListener("click", async () => {
+    const replyText = replyBox.querySelector(".reply-input").value.trim();
+    if (!replyText) return;
+
+    try {
+      await fetchWithAuth(`${BASE_URL}/answer-reactions/${answerId}`, {
+        method: "POST",
+        body: JSON.stringify({
+          comment: replyText,
+          parent_comment_id: parentId,
+        }),
+      });
+
+      replyBox.remove();
+      await loadAnswerComments(answerId, answerAuthorId);
+    } catch (err) {
+      console.error("Error submitting reply:", err);
+      alert("❌ Failed to submit reply.");
+    }
+  });
 };
 
 // Handles both loader and toggle behavior
@@ -303,7 +474,6 @@ window.loadAnswers = async (postId, event) => {
   const button = event.currentTarget;
   const answersDiv = document.getElementById(`answers-${postId}`);
 
-  // If already open, hide answers and reset button
   if (answersDiv.dataset.open === "true") {
     answersDiv.innerHTML = "";
     answersDiv.dataset.open = "false";
@@ -311,7 +481,6 @@ window.loadAnswers = async (postId, event) => {
     return;
   }
 
-  // Show loader and update button text
   answersDiv.innerHTML = `<div class="loader"></div>`;
   answersDiv.dataset.open = "true";
   button.textContent = "Loading...";
@@ -327,7 +496,9 @@ window.loadAnswers = async (postId, event) => {
       answersDiv.innerHTML = answers
         .map(
           (ans) => `
-          <div class="answer-card">
+          <div class="answer-card" id="answer-card-${ans.id}" data-author-id="${
+            ans.user_id
+          }">
             <p>${ans.body}</p>
             <div class="qa-meta">
               <span class="qa-author">${
@@ -344,17 +515,59 @@ window.loadAnswers = async (postId, event) => {
                 }
               )}</span>
             </div>
+
+            <div class="answer-reactions">
+              <button class="reaction-btn" data-answer-id="${
+                ans.id
+              }" data-type="like">👍</button>
+              <button class="reaction-btn" data-answer-id="${
+                ans.id
+              }" data-type="dislike">👎</button>
+              <button class="comment-btn" data-answer-id="${
+                ans.id
+              }" data-author-id="${ans.user_id}">💬 Comment</button>
+            </div>
+
+            <div id="comments-${ans.id}" class="comments-section"></div>
           </div>
         `
         )
         .join("");
+
+      // === Rebind event listeners after injecting ===
+      answersDiv.querySelectorAll(".reaction-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const answerId = btn.dataset.answerId;
+          const type = btn.dataset.type;
+          try {
+            await fetchWithAuth(
+              `${BASE_URL}/student/community/answer-reactions/${answerId}`,
+              {
+                method: "POST",
+                body: JSON.stringify({ type }),
+              }
+            );
+            console.log(`Added ${type} reaction to ${answerId}`);
+          } catch (err) {
+            console.error("Error reacting:", err);
+          }
+        });
+      });
+
+      answersDiv.querySelectorAll(".comment-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const answerId = btn.dataset.answerId;
+          const authorId = btn.dataset.authorId;
+          loadAnswerComments(answerId, authorId); // ✅ Connect to your comments loader
+        });
+      });
     }
 
-    button.textContent = "Hide Answers"; // change button after loading
+    button.textContent = "Hide Answers";
   } catch (err) {
     console.error("Error loading answers:", err);
     answersDiv.innerHTML = `<p style="color:red; text-align:center;">Failed to load answers.</p>`;
-    button.textContent = "View Answers"; // reset on error
+    button.textContent = "View Answers";
   }
 };
 

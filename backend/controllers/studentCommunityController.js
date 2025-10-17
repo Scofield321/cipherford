@@ -36,13 +36,41 @@ const calculateLevelAndProgress = (xp) => {
 const getCommunityPosts = async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT p.*, u.first_name, u.last_name
+      `SELECT 
+         p.id,
+         p.title,
+         p.body,
+         p.type,
+         p.user_id,
+         u.first_name,
+         u.last_name,
+         p.code,
+         p.ai_hint,
+         p.answered_by,
+         p.xp,
+         p.status,
+         p.rejection_reason,
+         p.created_at
        FROM community_posts p
-       LEFT JOIN users u ON p.username = u.last_name
+       LEFT JOIN users u ON p.user_id = u.id
        WHERE p.type IN ('question', 'challenge')
        ORDER BY p.created_at DESC`
     );
-    res.status(200).json(result.rows);
+
+    // Map status text for front-end
+    const posts = result.rows.map((post) => {
+      let statusText = "";
+      if (post.status === "pending") statusText = "⏳ Pending approval";
+      else if (post.status === "approved") statusText = "✅ Approved";
+      else if (post.status === "rejected")
+        statusText = `❌ Rejected: ${
+          post.rejection_reason || "No reason provided"
+        }`;
+
+      return { ...post, statusText };
+    });
+
+    res.status(200).json(posts);
   } catch (err) {
     console.error("Error fetching community posts:", err.message);
     res.status(500).json({ error: "Failed to fetch community posts" });
@@ -75,16 +103,17 @@ const createStudentPost = async (req, res) => {
     const username = `${userRes.rows[0].first_name} ${userRes.rows[0].last_name}`;
 
     const result = await db.query(
-      `INSERT INTO community_posts (title, body, type, username)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO community_posts (title, body, type, username, user_id, status)
+       VALUES ($1, $2, $3, $4, $5, 'pending')
        RETURNING *`,
-      [title, body, type, username]
+      [title, body, type, username, user_id]
     );
 
     await addXpToUser(user_id, 5); // XP for creating a post
-    res
-      .status(201)
-      .json({ message: "Post created successfully!", post: result.rows[0] });
+    res.status(201).json({
+      message: "Post submitted for review!",
+      post: result.rows[0],
+    });
   } catch (err) {
     console.error("Error creating post:", err.message);
     res.status(500).json({ error: "Failed to create post" });
@@ -115,8 +144,8 @@ const submitAnswer = async (req, res) => {
     const username = userRes.rows[0].first_name;
 
     await db.query(
-      `INSERT INTO community_answers (post_id, user_id, username, answer)
-       VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO community_answers (post_id, user_id, username, answer, status)
+       VALUES ($1, $2, $3, $4, 'pending')`,
       [post_id, user_id, username, answer]
     );
 
@@ -438,6 +467,214 @@ const addCommentReply = async (req, res) => {
   }
 };
 
+/**
+ * =============================
+ * PUT: /api/student/community/answers/:answerId
+ * Edit an answer (author or admin only)
+ * =============================
+ */
+const updateAnswer = async (req, res) => {
+  const answerId = req.params.answerId?.trim();
+  const answer = req.body.answer?.trim();
+  const user_id = req.user.id;
+
+  if (!answer) {
+    return res.status(400).json({ error: "Answer content is required." });
+  }
+
+  try {
+    // Check if the answer exists
+    const existing = await db.query(
+      `SELECT * FROM community_answers WHERE id = $1`,
+      [answerId]
+    );
+
+    if (existing.rowCount === 0)
+      return res.status(404).json({ error: "Answer not found." });
+
+    const currentAnswer = existing.rows[0];
+
+    // Check if the user is the author or admin
+    const userRes = await db.query(`SELECT role FROM users WHERE id = $1`, [
+      user_id,
+    ]);
+    const userRole = userRes.rows[0]?.role || "student";
+
+    if (currentAnswer.user_id !== user_id && userRole !== "admin") {
+      return res
+        .status(403)
+        .json({ error: "You are not allowed to edit this answer." });
+    }
+
+    // Update the answer (without updated_at)
+    const result = await db.query(
+      `UPDATE community_answers
+       SET answer = $1
+       WHERE id = $2
+       RETURNING *`,
+      [answer, answerId]
+    );
+
+    res.status(200).json({
+      message: "Answer updated successfully.",
+      updated: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating answer:", err);
+    res.status(500).json({ error: "Failed to update answer." });
+  }
+};
+
+/**
+ * =============================
+ * DELETE: /api/student/community/answers/:answerId
+ * Delete an answer (author or admin only)
+ * =============================
+ */
+const deleteAnswer = async (req, res) => {
+  const answerId = req.params.answerId?.trim();
+  const user_id = req.user.id;
+
+  if (!answerId) {
+    return res.status(400).json({ error: "Answer ID is required." });
+  }
+
+  try {
+    // Check if the answer exists
+    const existing = await db.query(
+      `SELECT * FROM community_answers WHERE id = $1`,
+      [answerId]
+    );
+
+    if (existing.rowCount === 0) {
+      return res.status(404).json({ error: "Answer not found." });
+    }
+
+    const currentAnswer = existing.rows[0];
+
+    // Check if the user is the author or admin
+    const userRes = await db.query(`SELECT role FROM users WHERE id = $1`, [
+      user_id,
+    ]);
+
+    const userRole = userRes.rows[0]?.role || "student";
+
+    if (currentAnswer.user_id !== user_id && userRole !== "admin") {
+      return res
+        .status(403)
+        .json({ error: "You are not allowed to delete this answer." });
+    }
+
+    // Delete the answer
+    await db.query(`DELETE FROM community_answers WHERE id = $1`, [answerId]);
+
+    res.status(200).json({ message: "Answer deleted successfully." });
+  } catch (err) {
+    console.error("❌ Error deleting answer:", err);
+    res.status(500).json({ error: "Failed to delete answer." });
+  }
+};
+
+const updatePost = async (req, res) => {
+  const postId = req.params.postId?.trim();
+  const { title, body, status } = req.body;
+  const user_id = req.user.id;
+
+  if (!title || !body) {
+    return res.status(400).json({ error: "Title and body are required." });
+  }
+
+  try {
+    const existing = await db.query(
+      `SELECT * FROM community_posts WHERE id = $1`,
+      [postId]
+    );
+
+    if (existing.rowCount === 0)
+      return res.status(404).json({ error: "Post not found." });
+
+    const currentPost = existing.rows[0];
+
+    const userRes = await db.query(`SELECT role FROM users WHERE id = $1`, [
+      user_id,
+    ]);
+    const userRole = userRes.rows[0]?.role || "student";
+
+    if (currentPost.user_id !== user_id && userRole !== "admin") {
+      return res
+        .status(403)
+        .json({ error: "You are not allowed to edit this post." });
+    }
+
+    // Update post including status (if provided)
+    const result = await db.query(
+      `UPDATE community_posts
+       SET title = $1, body = $2, status = COALESCE($3, status)
+       WHERE id = $4
+       RETURNING *`,
+      [title, body, status, postId]
+    );
+
+    res.status(200).json({
+      message: "Post updated successfully.",
+      updated: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating post:", err);
+    res.status(500).json({ error: "Failed to update post." });
+  }
+};
+
+/**
+ * =============================
+ * DELETE: /api/student/community/posts/:postId
+ * Delete a question/post (author or admin only)
+ * =============================
+ */
+const deletePost = async (req, res) => {
+  const postId = req.params.postId?.trim();
+  const user_id = req.user.id;
+
+  if (!postId) {
+    return res.status(400).json({ error: "Post ID is required." });
+  }
+
+  try {
+    // Check if the post exists
+    const existing = await db.query(
+      `SELECT * FROM community_posts WHERE id = $1`,
+      [postId]
+    );
+
+    if (existing.rowCount === 0) {
+      return res.status(404).json({ error: "Post not found." });
+    }
+
+    const currentPost = existing.rows[0];
+
+    // Check if the user is the author or admin
+    const userRes = await db.query(`SELECT role FROM users WHERE id = $1`, [
+      user_id,
+    ]);
+
+    const userRole = userRes.rows[0]?.role || "student";
+
+    if (currentPost.user_id !== user_id && userRole !== "admin") {
+      return res
+        .status(403)
+        .json({ error: "You are not allowed to delete this post." });
+    }
+
+    // Delete the post
+    await db.query(`DELETE FROM community_posts WHERE id = $1`, [postId]);
+
+    res.status(200).json({ message: "Post deleted successfully." });
+  } catch (err) {
+    console.error("❌ Error deleting post:", err);
+    res.status(500).json({ error: "Failed to delete post." });
+  }
+};
+
 module.exports = {
   getCommunityPosts,
   createStudentPost,
@@ -448,4 +685,8 @@ module.exports = {
   getLeaderboard,
   getAdminPosts,
   addCommentReply,
+  updateAnswer,
+  deleteAnswer,
+  updatePost,
+  deletePost,
 };

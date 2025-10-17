@@ -826,17 +826,39 @@ export async function loadAdminPosts() {
       `;
 
       if (Session.user()?.role === "admin") {
+        const actionsDiv = postDiv.querySelector(".qa-actions");
+
+        // Delete button
         const deleteBtn = document.createElement("button");
         deleteBtn.textContent = "Delete";
         deleteBtn.className = "delete-post-btn";
         deleteBtn.addEventListener("click", () => deletePost(post.id, postDiv));
-        postDiv.querySelector(".qa-actions")?.appendChild(deleteBtn);
+        actionsDiv.appendChild(deleteBtn);
+
+        // Approve button
+        const approveBtn = document.createElement("button");
+        approveBtn.textContent = "Approve";
+        approveBtn.className = "approve-post-btn";
+        approveBtn.addEventListener("click", () =>
+          updatePostStatus(post.id, "approved", postDiv)
+        );
+        actionsDiv.appendChild(approveBtn);
+
+        // Reject button
+        const rejectBtn = document.createElement("button");
+        rejectBtn.textContent = "Reject";
+        rejectBtn.className = "reject-post-btn";
+        rejectBtn.addEventListener("click", () =>
+          updatePostStatus(post.id, "rejected", postDiv)
+        );
+        actionsDiv.appendChild(rejectBtn);
       }
 
       adminPostsSection.appendChild(postDiv);
 
       await loadAnswersIntoDOM(post.id);
 
+      // Answer form submission
       const answerForm = postDiv.querySelector(".answer-form");
       const textarea = postDiv.querySelector(".answer-textarea");
 
@@ -875,6 +897,46 @@ export async function loadAdminPosts() {
     console.error("Error loading admin posts:", err);
     adminPostsSection.innerHTML =
       "<p>Failed to load admin posts. Try again later.</p>";
+  }
+}
+
+// ----------------------------
+// Helper: Update Post Status
+// ----------------------------
+async function updatePostStatus(postId, status, postDiv) {
+  let reason = "";
+
+  // Ask for reason if rejecting
+  if (status === "rejected") {
+    reason = prompt("Please provide a reason for rejection:");
+    if (!reason) {
+      alert("Rejection reason is required.");
+      return;
+    }
+  }
+
+  if (!confirm(`Are you sure you want to ${status} this post?`)) return;
+
+  try {
+    const res = await fetch(`${BASE_URL}/qa/posts/${postId}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Session.token()}`,
+      },
+      body: JSON.stringify({ status, reason }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || `Failed to ${status} post`);
+    }
+
+    alert(`Post ${status} successfully!`);
+    postDiv.remove(); // remove it from the admin list after action
+  } catch (err) {
+    console.error("Error updating post status:", err);
+    alert(`Failed to ${status} post: ${err.message}`);
   }
 }
 
@@ -1009,6 +1071,116 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+// fetch pending posts
+const loadPendingPosts = async () => {
+  try {
+    const res = await fetch(`${BASE_URL}/qa/posts?status=pending`, {
+      headers: { Authorization: "Bearer " + Session.token() },
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch pending posts");
+
+    const posts = await res.json();
+    const container = document.getElementById("pending-posts-container");
+
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    posts.forEach((post) => {
+      const div = document.createElement("div");
+      div.className = "pending-post";
+      div.dataset.id = post.id;
+
+      div.innerHTML = `
+        <h3>${post.title}</h3>
+        <p>${post.body}</p>
+        <p>Status: ${post.status}</p>
+      `;
+
+      if (post.status === "pending") {
+        const approveBtn = document.createElement("button");
+        approveBtn.textContent = "Approve";
+        approveBtn.addEventListener("click", () => approvePost(post.id, div));
+
+        const rejectBtn = document.createElement("button");
+        rejectBtn.textContent = "Reject";
+        rejectBtn.addEventListener("click", () => rejectPost(post.id, div));
+
+        div.appendChild(approveBtn);
+        div.appendChild(rejectBtn);
+      }
+
+      container.appendChild(div);
+    });
+  } catch (err) {
+    console.error("Error loading pending posts:", err);
+  }
+};
+
+// approve the posts
+
+async function approvePost(postId, postDiv) {
+  if (!confirm("Approve this post?")) return;
+
+  try {
+    const res = await fetch(`${BASE_URL}/qa/posts/${postId}/approve`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Session.token()}`,
+      },
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || "Failed to approve post");
+    }
+
+    // Remove post from DOM
+    if (postDiv) postDiv.remove();
+    alert("Post approved successfully!");
+  } catch (err) {
+    console.error("Error approving post:", err);
+    alert(`Error approving post: ${err.message}`);
+  }
+}
+
+// Reject a pending post with reason
+async function rejectPost(postId, postDiv) {
+  // Ask for reason
+  const reason = prompt("Please provide a reason for rejection:");
+  if (!reason) {
+    alert("Rejection reason is required.");
+    return;
+  }
+
+  if (!confirm(`Reject this post for reason: "${reason}"?`)) return;
+
+  try {
+    const res = await fetch(`${BASE_URL}/qa/posts/${postId}/reject`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Session.token()}`,
+      },
+      body: JSON.stringify({ reason }), // send reason to server
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || "Failed to reject post");
+    }
+
+    // Remove post from DOM
+    if (postDiv) postDiv.remove();
+    alert("Post rejected successfully!");
+  } catch (err) {
+    console.error("Error rejecting post:", err);
+    alert(`Error rejecting post: ${err.message}`);
+  }
+}
+
 // Load all community content
 export async function loadCommunitySection() {
   try {
@@ -1019,6 +1191,7 @@ export async function loadCommunitySection() {
       loadQA(),
       loadAdminPosts(),
       loadAI(),
+      loadPendingPosts(),
     ]);
     console.log("Community content loaded.");
   } catch (err) {
