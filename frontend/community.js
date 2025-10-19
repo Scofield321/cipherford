@@ -107,7 +107,7 @@ function showQuiz(index) {
     const div = document.createElement("div");
     div.innerHTML = `
       <input type="radio" id="${id}" name="quiz-option" value="${opt}" />
-      <label for="${id}">${opt}</label>
+      <label for="${id}">${escapeHTML(opt)}</label>
     `;
     quizOptionsForm.appendChild(div);
   });
@@ -298,10 +298,10 @@ async function loadAdminQuizzes() {
 function addQuizRow(quiz) {
   const tr = document.createElement("tr");
   tr.innerHTML = `
-    <td>${quiz.question}</td>
-    <td>${quiz.options.join(", ")}</td>
-    <td>${quiz.correct_answer}</td>
-    <td>${(quiz.tags || []).join(", ")}</td>
+    <td>${escapeHTML(quiz.question)}</td>
+    <td>${(quiz.options || []).map(escapeHTML).join(", ")}</td>
+    <td>${escapeHTML(quiz.correct_answer)}</td>
+    <td>${(quiz.tags || []).map(escapeHTML).join(", ")}</td>
     <td>
       <button class="edit-btn" data-id="${quiz.id}">Edit</button>
       <button class="delete-btn" data-id="${quiz.id}">Delete</button>
@@ -405,16 +405,28 @@ export async function loadLeaderboard() {
 
 // Escape HTML to safely display code
 function escapeHTML(str) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
+
 // Format post content: code blocks and inline code
 function formatContent(text) {
   if (!text) return "";
-  // Convert fenced code blocks ```code``` to div with class "post-code"
+
+  // Escape all HTML first
+  text = escapeHTML(text);
+
+  // Convert code blocks (they are already escaped)
   text = text.replace(/```([\s\S]*?)```/g, (match, code) => {
-    return `<div class="post-code">${escapeHTML(code)}</div>`;
+    return `<div class="post-code">${code}</div>`;
   });
-  // Inline code `like this`
+
+  // Inline code
   text = text.replace(/`([^`]+)`/g, '<span class="post-code-inline">$1</span>');
 
   return text;
@@ -553,7 +565,9 @@ export async function loadQA() {
       postDiv.innerHTML = `
         <div class="qa-card">
           <div class="qa-header">
-            <h4 class="qa-title">${post.title || "Untitled Question"}</h4>
+            <h4 class="qa-title">${
+              escapeHTML(post.title) || "Untitled Question"
+            }</h4>
             <p class="qa-body">${formatContent(post.body)}</p>
           </div>
 
@@ -799,7 +813,9 @@ export async function loadAdminPosts() {
       postDiv.innerHTML = `
         <div class="qa-card">
           <div class="qa-header">
-            <h4 class="qa-title">${post.title || "Untitled Post"}</h4>
+            <h4 class="qa-title">${
+              escapeHTML(post.title) || "Untitled Post"
+            }</h4>
             <p class="qa-body">${formatContent(post.body)}</p>
           </div>
 
@@ -1093,8 +1109,8 @@ const loadPendingPosts = async () => {
       div.dataset.id = post.id;
 
       div.innerHTML = `
-        <h3>${post.title}</h3>
-        <p>${post.body}</p>
+        <h3>${escapeHTML(post.title)}</h3>
+        <p>${escapeHTML(post.body)}</p>
         <p>Status: ${post.status}</p>
       `;
 

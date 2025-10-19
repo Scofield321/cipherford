@@ -59,8 +59,8 @@ export const loadCommunityPosts = async () => {
 
       // ===== POST HTML =====
       postDiv.innerHTML = `
-        <h4 class="qa-title">${post.title}</h4>
-        <p>${post.body}</p>
+        <h4 class="qa-title">${escapeHTML(post.title)}</h4>
+        <p>${escapeHTML(post.body)}</p>
         ${statusLabel}
 
         <div class="qa-meta">
@@ -350,7 +350,7 @@ export const loadAnswerComments = async (answerId, answerAuthorId) => {
             <div class="comment" style="margin-left:${
               level * 1.2
             }rem; border-left:1px solid #ccc; padding-left:0.5rem; margin-top:0.4rem;">
-              <p><b>${comment.full_name}</b>: ${comment.comment}</p>
+              <p><b>${comment.full_name}</b>: ${escapeHTML(comment.comment)}</p>
               <small style="color:gray;">${new Date(
                 comment.created_at
               ).toLocaleString()}</small>
@@ -485,6 +485,18 @@ window.loadAnswers = async (postId, event) => {
   answersDiv.dataset.open = "true";
   button.textContent = "Loading...";
 
+  // ===== Get current user info =====
+  const token = Session.token();
+  let currentUserId = null;
+  let isAdmin = false;
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      currentUserId = payload.userId || payload.id;
+      isAdmin = payload.role === "admin";
+    } catch {}
+  }
+
   try {
     const answers = await fetchWithAuth(
       `${BASE_URL}/student/community/posts/${postId}/answers`
@@ -494,16 +506,20 @@ window.loadAnswers = async (postId, event) => {
       answersDiv.innerHTML = `<p style="text-align:center; color:#aaa;">No answers yet.</p>`;
     } else {
       answersDiv.innerHTML = answers
-        .map(
-          (ans) => `
+        .map((ans) => {
+          const canEditDelete = currentUserId === ans.user_id || isAdmin;
+          const authorName =
+            (ans.first_name || "") + " " + (ans.last_name || "") ||
+            ans.username ||
+            "Anonymous";
+          return `
           <div class="answer-card" id="answer-card-${ans.id}" data-author-id="${
             ans.user_id
           }">
-            <p>${ans.body}</p>
+            <p><strong>${escapeHTML(authorName)}:</strong> ${escapeHTML(
+            ans.body
+          )}</p>
             <div class="qa-meta">
-              <span class="qa-author">${
-                ans.first_name || ans.last_name || ans.username || "Anonymous"
-              }</span>
               <span class="qa-date">${new Date(ans.created_at).toLocaleString(
                 [],
                 {
@@ -515,7 +531,6 @@ window.loadAnswers = async (postId, event) => {
                 }
               )}</span>
             </div>
-
             <div class="answer-reactions">
               <button class="reaction-btn" data-answer-id="${
                 ans.id
@@ -527,14 +542,20 @@ window.loadAnswers = async (postId, event) => {
                 ans.id
               }" data-author-id="${ans.user_id}">💬 Comment</button>
             </div>
-
+            ${
+              canEditDelete
+                ? `<div class="answer-actions">
+                     <button class="edit-answer-btn" data-answer-id="${ans.id}">✏️ Edit</button>
+                     <button class="delete-answer-btn" data-answer-id="${ans.id}">🗑️ Delete</button>
+                   </div>`
+                : ""
+            }
             <div id="comments-${ans.id}" class="comments-section"></div>
-          </div>
-        `
-        )
+          </div>`;
+        })
         .join("");
 
-      // === Rebind event listeners after injecting ===
+      // === Bind reactions ===
       answersDiv.querySelectorAll(".reaction-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const answerId = btn.dataset.answerId;
@@ -547,18 +568,63 @@ window.loadAnswers = async (postId, event) => {
                 body: JSON.stringify({ type }),
               }
             );
-            console.log(`Added ${type} reaction to ${answerId}`);
           } catch (err) {
             console.error("Error reacting:", err);
           }
         });
       });
 
+      // === Bind comments ===
       answersDiv.querySelectorAll(".comment-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
           const answerId = btn.dataset.answerId;
           const authorId = btn.dataset.authorId;
-          loadAnswerComments(answerId, authorId); // ✅ Connect to your comments loader
+          loadAnswerComments(answerId, authorId);
+        });
+      });
+
+      // === Bind edit/delete ===
+      answersDiv.querySelectorAll(".edit-answer-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const answerId = btn.dataset.answerId;
+          const answerP = document.querySelector(`#answer-card-${answerId} p`);
+          const currentText = answerP.textContent.replace(/^.*?:\s/, "");
+          const newAnswer = prompt("Edit your answer:", currentText);
+          if (!newAnswer) return;
+          try {
+            await fetchWithAuth(
+              `${BASE_URL}/student/community/answers/${answerId}`,
+              {
+                method: "PUT",
+                body: JSON.stringify({ answer: newAnswer }),
+              }
+            );
+            answerP.innerHTML = `<strong>${escapeHTML(
+              currentUserId
+            )}:</strong> ${escapeHTML(newAnswer)}`;
+            alert("Answer updated!");
+          } catch (err) {
+            console.error("Error updating answer:", err);
+            alert("Failed to update answer.");
+          }
+        });
+      });
+
+      answersDiv.querySelectorAll(".delete-answer-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("Are you sure you want to delete this answer?")) return;
+          const answerId = btn.dataset.answerId;
+          try {
+            await fetchWithAuth(
+              `${BASE_URL}/student/community/answers/${answerId}`,
+              { method: "DELETE" }
+            );
+            document.getElementById(`answer-card-${answerId}`).remove();
+            alert("Answer deleted!");
+          } catch (err) {
+            console.error("Error deleting answer:", err);
+            alert("Failed to delete answer.");
+          }
         });
       });
     }
@@ -631,7 +697,7 @@ export const setupAskQuestionFeature = () => {
 export const submitAnswer = async (postId) => {
   try {
     const answerInput = document.getElementById(`answer-input-${postId}`);
-    const answer = answerInput.value.trim();
+    const answer = escapeHTML(answerInput.value.trim());
     if (!answer) return alert("Please type an answer.");
 
     const res = await fetchWithAuth(`${BASE_URL}/student/community/answers`, {
@@ -651,17 +717,195 @@ export const submitAnswer = async (postId) => {
 // ==============================
 // Load answers for a post
 // ==============================
-export const loadAnswers = async (postId) => {
+export const loadAnswers = async (postId, event = null) => {
+  const answersDiv = document.getElementById(`answers-${postId}`);
+  let button = event?.currentTarget || null;
+
+  // Toggle open/close if button is provided
+  if (button && answersDiv.dataset.open === "true") {
+    answersDiv.innerHTML = "";
+    answersDiv.dataset.open = "false";
+    button.textContent = "View Answers";
+    return;
+  }
+
+  answersDiv.innerHTML = `<div class="loader"></div>`;
+  if (button) {
+    answersDiv.dataset.open = "true";
+    button.textContent = "Loading...";
+  }
+
+  // ===== Get current user info =====
+  const token = Session.token();
+  let currentUserId = null;
+  let isAdmin = false;
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      currentUserId = payload.userId || payload.id;
+      isAdmin = payload.role === "admin";
+    } catch {}
+  }
+
   try {
+    // Fetch answers
     const answers = await fetchWithAuth(
       `${BASE_URL}/student/community/posts/${postId}/answers`
     );
-    const answersDiv = document.getElementById(`answers-${postId}`);
-    answersDiv.innerHTML = answers
-      .map((ans) => `<p><strong>${ans.first_name}:</strong> ${ans.answer}</p>`)
-      .join("");
+
+    if (!answers || answers.length === 0) {
+      answersDiv.innerHTML = `<p style="text-align:center; color:#aaa;">No answers yet.</p>`;
+      if (button) button.textContent = "View Answers";
+      return;
+    }
+
+    answersDiv.innerHTML = "";
+
+    answers.forEach((ans) => {
+      // ===== FIX: ensure IDs match strings and trim spaces =====
+      const canEditDelete =
+        (ans.user_id &&
+          currentUserId?.toString().trim() ===
+            ans.user_id?.toString().trim()) ||
+        isAdmin;
+
+      const authorName =
+        (ans.first_name || "") + " " + (ans.last_name || "") ||
+        ans.username ||
+        "Anonymous";
+
+      const answerCard = document.createElement("div");
+      answerCard.classList.add("answer-card");
+      answerCard.id = `answer-card-${ans.id}`;
+      answerCard.dataset.authorId = ans.user_id;
+
+      answerCard.innerHTML = `
+        <p><strong>${escapeHTML(authorName)}:</strong> ${escapeHTML(
+        ans.answer
+      )}</p>
+        <div class="qa-meta">
+          <span class="qa-date">${new Date(ans.created_at).toLocaleString([], {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}</span>
+        </div>
+        <div class="answer-reactions">
+          <button class="reaction-btn" data-answer-id="${
+            ans.id
+          }" data-type="like">
+            👍 <span id="like-count-${ans.id}">${ans.likes ?? 0}</span>
+          </button>
+          <button class="reaction-btn" data-answer-id="${
+            ans.id
+          }" data-type="dislike">
+            👎 <span id="dislike-count-${ans.id}">${ans.dislikes ?? 0}</span>
+          </button>
+          <button class="comment-btn" data-answer-id="${
+            ans.id
+          }" data-author-id="${ans.user_id}">
+            💬 Comments
+          </button>
+        </div>
+        <div id="comments-${ans.id}" class="comments-section"></div>
+        ${
+          canEditDelete
+            ? `<div class="answer-actions">
+                 <button class="edit-answer-btn" data-answer-id="${ans.id}">✏️ Edit</button>
+                 <button class="delete-answer-btn" data-answer-id="${ans.id}">🗑️ Delete</button>
+               </div>`
+            : ""
+        }
+      `;
+
+      answersDiv.appendChild(answerCard);
+
+      // ===== Bind reactions =====
+      answerCard.querySelectorAll(".reaction-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const answerId = btn.dataset.answerId;
+          const type = btn.dataset.type;
+          try {
+            const data = await fetchWithAuth(
+              `${BASE_URL}/student/community/answer-reactions/${answerId}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ reaction_type: type }),
+              }
+            );
+            document.getElementById(`like-count-${answerId}`).textContent =
+              data.likes;
+            document.getElementById(`dislike-count-${answerId}`).textContent =
+              data.dislikes;
+          } catch (err) {
+            console.error("Error reacting:", err);
+            alert(err.message || "Failed to react");
+          }
+        });
+      });
+
+      // ===== Bind comments =====
+      answerCard.querySelectorAll(".comment-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const answerId = btn.dataset.answerId;
+          const authorId = btn.dataset.authorId;
+          loadAnswerComments(answerId, authorId);
+        });
+      });
+
+      // ===== Bind edit & delete =====
+      if (canEditDelete) {
+        const editBtn = answerCard.querySelector(".edit-answer-btn");
+        editBtn?.addEventListener("click", async () => {
+          const answerP = answerCard.querySelector("p");
+          const currentText = answerP.textContent.replace(/^.*?:\s/, "");
+          const newAnswer = prompt("Edit your answer:", currentText);
+          if (!newAnswer) return;
+          try {
+            await fetchWithAuth(
+              `${BASE_URL}/student/community/answers/${ans.id}`,
+              {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ answer: newAnswer }),
+              }
+            );
+            answerP.innerHTML = `<strong>${escapeHTML(
+              authorName
+            )}:</strong> ${escapeHTML(newAnswer)}`;
+            alert("Answer updated!");
+          } catch (err) {
+            console.error("Error updating answer:", err);
+            alert("Failed to update answer.");
+          }
+        });
+
+        const deleteBtn = answerCard.querySelector(".delete-answer-btn");
+        deleteBtn?.addEventListener("click", async () => {
+          if (!confirm("Are you sure you want to delete this answer?")) return;
+          try {
+            await fetchWithAuth(
+              `${BASE_URL}/student/community/answers/${ans.id}`,
+              { method: "DELETE" }
+            );
+            answerCard.remove();
+            alert("Answer deleted!");
+          } catch (err) {
+            console.error("Error deleting answer:", err);
+            alert("Failed to delete answer.");
+          }
+        });
+      }
+    });
+
+    if (button) button.textContent = "Hide Answers";
   } catch (err) {
     console.error("Error loading answers:", err);
+    answersDiv.innerHTML = `<p style="color:red; text-align:center;">Failed to load answers.</p>`;
+    if (button) button.textContent = "View Answers";
   }
 };
 
@@ -767,7 +1011,7 @@ export const loadAdminAnswers = async (postId) => {
         (ans) =>
           `<p class="qa-author"><strong>${
             ans.first_name || ans.username || "Student"
-          }:</strong> ${ans.answer}</p>`
+          }:</strong> ${escapeHTML(ans.answer)}</p>`
       )
       .join("");
   } catch (err) {
@@ -789,8 +1033,8 @@ export const loadAdminPosts = async () => {
         const postDiv = document.createElement("div");
         postDiv.classList.add("admin-post-card");
         postDiv.innerHTML = `
-          <h4 class="qa-title">${post.title}</h4>
-          <p>${post.body}</p>
+          <h4 class="qa-title">${escapeHTML(post.title)}</h4>
+          <p>${escapeHTML(post.body)}</p>
           
         <div class="qa-meta">
         <span class="qa-author">${
@@ -827,9 +1071,6 @@ export const loadAdminPosts = async () => {
 // ==============================
 // Load quizzes one by one
 // ==============================
-// import { BASE_URL } from "./config.js";
-// import { fetchWithAuth } from "./auth-utils.js";
-// import { submitQuiz } from "./student-quiz-submit.js";
 
 export const loadQuizzes = async () => {
   console.log("🎯 Loading quizzes...");
@@ -838,7 +1079,16 @@ export const loadQuizzes = async () => {
     const container = document.getElementById("community-quiz-container");
     if (!container) return;
 
-    // Game state for current session only
+    // Utility function to shuffle arrays
+    const shuffleArray = (array) => {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    };
+
+    // Game state
     let xp = 0;
     let streak = 0;
     let lives = 3;
@@ -863,13 +1113,20 @@ export const loadQuizzes = async () => {
       </div>
     `;
 
-    const quizzes = await fetchWithAuth(
-      `${BASE_URL}/student/community/quizzes`
-    );
+    let quizzes = await fetchWithAuth(`${BASE_URL}/student/community/quizzes`);
     if (!quizzes.length) {
       container.innerHTML = `<p class="no-quizzes">No quizzes available yet.</p>`;
       return;
     }
+
+    // Shuffle quizzes
+    shuffleArray(quizzes);
+
+    // Shuffle options for each quiz
+    quizzes = quizzes.map((quiz) => ({
+      ...quiz,
+      options: shuffleArray([...quiz.options]), // copy and shuffle
+    }));
 
     let currentIndex = 0;
 
@@ -956,19 +1213,37 @@ export const loadQuizzes = async () => {
       quizDiv.innerHTML = `
         <h4 class="quiz-question">${quiz.question}</h4>
         <form id="quiz-form-${quiz.id}" class="quiz-form">
-          ${quiz.options
-            .map(
-              (opt) => `
-            <label class="quiz-option">
-              <input type="radio" name="quiz-${quiz.id}" value="${opt}"> ${opt}
-            </label><br>`
-            )
-            .join("")}
+          <div class="quiz-options">
+            ${quiz.options
+              .map(
+                (opt, idx) => `
+              <div class="quiz-option-card">
+                <input type="radio" id="quiz-${
+                  quiz.id
+                }-opt-${idx}" name="quiz-${quiz.id}" value="${opt}">
+                <label for="quiz-${quiz.id}-opt-${idx}">${escapeHTML(
+                  opt
+                )}</label>
+              </div>
+            `
+              )
+              .join("")}
+          </div>
           <button type="submit" class="quiz-submit-btn">Submit Answer</button>
         </form>
         <div id="quiz-result-${quiz.id}" class="quiz-result"></div>
       `;
       container.appendChild(quizDiv);
+
+      // Highlight selected card
+      const optionCards = quizDiv.querySelectorAll(".quiz-option-card");
+      optionCards.forEach((card) => {
+        const input = card.querySelector("input");
+        input.addEventListener("change", () => {
+          optionCards.forEach((c) => c.classList.remove("selected"));
+          if (input.checked) card.classList.add("selected");
+        });
+      });
 
       const form = document.getElementById(`quiz-form-${quiz.id}`);
       const resultDiv = document.getElementById(`quiz-result-${quiz.id}`);
@@ -1015,7 +1290,7 @@ export const loadQuizzes = async () => {
             if (currentIndex < quizzes.length) showQuiz(quizzes[currentIndex]);
             else
               container.innerHTML = `<p class="quiz-complete">🎉 You completed all quizzes! Total XP: ${xp}</p>`;
-          }, 2000);
+          }, 3000);
         } catch (err) {
           console.error("Error submitting quiz:", err);
           resultDiv.innerHTML = `<span class="quiz-error">Failed to submit quiz. Try again.</span>`;
@@ -1031,6 +1306,17 @@ export const loadQuizzes = async () => {
       container.innerHTML = `<p class="quiz-error">Failed to load quizzes.</p>`;
   }
 };
+
+// Utility to escape HTML special characters
+function escapeHTML(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 // ==============================
 // Submit a quiz answer
