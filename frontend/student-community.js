@@ -742,9 +742,11 @@ export const loadAnswers = async (postId, event = null) => {
   if (token) {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      currentUserId = payload.userId || payload.id;
-      isAdmin = payload.role === "admin";
-    } catch {}
+      currentUserId = payload.id || payload.userId || payload.user_id || null;
+      isAdmin = payload.role?.toLowerCase() === "admin";
+    } catch (err) {
+      console.error("Error parsing token:", err);
+    }
   }
 
   try {
@@ -813,8 +815,8 @@ export const loadAnswers = async (postId, event = null) => {
         ${
           canEditDelete
             ? `<div class="answer-actions">
-                 <button class="edit-answer-btn" data-answer-id="${ans.id}">✏️ Edit</button>
-                 <button class="delete-answer-btn" data-answer-id="${ans.id}">🗑️ Delete</button>
+                 <button class="edit-answer-btn" data-answer-id="${ans.id}">✏️ Edit Answer</button>
+                 <button class="delete-answer-btn" data-answer-id="${ans.id}">🗑️ Delete Answer</button>
                </div>`
             : ""
         }
@@ -1211,7 +1213,7 @@ export const loadQuizzes = async () => {
       const quizDiv = document.createElement("div");
       quizDiv.classList.add("quiz-card");
       quizDiv.innerHTML = `
-        <h4 class="quiz-question">${quiz.question}</h4>
+        <h4 class="quiz-question">${escapeHTML(quiz.question)}</h4>
         <form id="quiz-form-${quiz.id}" class="quiz-form">
           <div class="quiz-options">
             ${quiz.options
@@ -1274,7 +1276,9 @@ export const loadQuizzes = async () => {
             streak = 0;
             resultDiv.innerHTML = `
               <span class="quiz-wrong">❌ ${res.message}</span><br>
-              <small class="quiz-correct-answer">Correct: ${res.correctAnswer}</small>
+              <small class="quiz-correct-answer">Correct: ${escapeHTML(
+                res.correctAnswer
+              )}</small>
             `;
           }
 
