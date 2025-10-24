@@ -165,6 +165,191 @@ if (submitQuizBtn) {
 const userQuizSection = document.getElementById("user-quiz-section");
 let createQuizForm, quizTableBody;
 
+// ------------------------
+// Admin Sets Management
+// ------------------------
+const setsSection =
+  document.getElementById("admin-sets-section") ||
+  document.createElement("div");
+setsSection.id = "admin-sets-section";
+setsSection.innerHTML = `
+  <button id="add-set-btn" class="submit-btn">➕ Add Set</button>
+  <div id="create-set-form" style="display:none; margin-top:1rem;">
+    <input type="text" id="set-title-input" placeholder="Enter set title" required style="width:100%; padding:8px; margin-bottom:8px;">
+    <textarea id="set-description-input" placeholder="Optional description..." rows="3" style="width:100%; padding:8px; margin-bottom:8px;"></textarea>
+    <input type="text" id="set-category-input" placeholder="Enter category" required style="width:100%; padding:8px; margin-bottom:8px;">
+    <button id="submit-set-btn" class="submit-btn">Create Set</button>
+  </div>
+  <div id="sets-list" style="margin-top:1rem;"></div>
+`;
+
+userQuizSection.prepend(setsSection);
+
+const addSetBtn = document.getElementById("add-set-btn");
+const createSetForm = document.getElementById("create-set-form");
+const submitSetBtn = document.getElementById("submit-set-btn");
+const setsList = document.getElementById("sets-list");
+
+// Toggle Create Set Form
+addSetBtn.addEventListener("click", () => {
+  createSetForm.style.display =
+    createSetForm.style.display === "none" ? "block" : "none";
+});
+
+// Submit New Set
+submitSetBtn.addEventListener("click", async () => {
+  const title = document.getElementById("set-title-input").value.trim();
+  const description = document
+    .getElementById("set-description-input")
+    .value.trim();
+  const category = document.getElementById("set-category-input").value.trim();
+
+  if (!title || !category) return alert("Set title and category are required");
+
+  try {
+    const res = await fetch(`${BASE_URL}/quiz-sets`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Session.token()}`,
+      },
+      body: JSON.stringify({ title, description, category }),
+    });
+
+    if (!res.ok) throw new Error("Failed to create set");
+    const data = await res.json();
+    addSetToDOM(data.set);
+    createSetForm.style.display = "none";
+    createSetForm.reset?.();
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  }
+});
+
+// Add a set card to the DOM
+function addSetToDOM(set) {
+  const setDiv = document.createElement("div");
+  setDiv.className = "quiz-set";
+  setDiv.dataset.id = set.id;
+  setDiv.innerHTML = `
+    <h3>${escapeHTML(set.title)}</h3>
+    <p>${escapeHTML(set.description || "")}</p>
+    <button class="add-question-btn">➕ Add Question</button>
+    <div class="quiz-questions-container" style="margin-top:8px;"></div>
+  `;
+  setsList.appendChild(setDiv);
+
+  const addQuestionBtn = setDiv.querySelector(".add-question-btn");
+  const questionsContainer = setDiv.querySelector(".quiz-questions-container");
+
+  // Toggle mini form for adding a question
+  addQuestionBtn.addEventListener("click", () => {
+    if (questionsContainer.innerHTML.trim() === "") {
+      questionsContainer.innerHTML = `
+        <form class="create-quiz-form">
+          <textarea name="question" placeholder="Quiz question" required style="width:100%; padding:8px; margin-bottom:8px;"></textarea>
+          <input type="text" name="options" placeholder="Options comma-separated" required style="width:100%; padding:8px; margin-bottom:8px;" />
+          <input type="text" name="correct_answer" placeholder="Correct Answer" required style="width:100%; padding:8px; margin-bottom:8px;" />
+          <input type="text" name="tags" placeholder="Tags (comma-separated)" style="width:100%; padding:8px; margin-bottom:8px;" />
+          <button type="submit" class="submit-btn">Submit Question</button>
+        </form>
+        <div class="quiz-table"></div>
+      `;
+      const form = questionsContainer.querySelector(".create-quiz-form");
+      const table = questionsContainer.querySelector(".quiz-table");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const question = formData.get("question").trim();
+        const options = formData
+          .get("options")
+          .split(",")
+          .map((o) => o.trim());
+        const correct_answer = formData.get("correct_answer").trim();
+        const tags = formData
+          .get("tags")
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
+
+        if (!question || options.length === 0 || !correct_answer)
+          return alert("Fill all required fields");
+
+        try {
+          const res = await fetch(`${BASE_URL}/quiz-sets/${set.id}/quizzes`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Session.token()}`,
+            },
+            body: JSON.stringify({ question, options, correct_answer, tags }),
+          });
+          if (!res.ok) throw new Error("Failed to add question");
+          const data = await res.json();
+          addSetQuizRow(table, data.quiz);
+          form.reset();
+        } catch (err) {
+          console.error(err);
+          alert(err.message);
+        }
+      });
+
+      // Load existing questions for this set
+      loadSetQuestions(set.id, table);
+    } else {
+      // Toggle visibility
+      questionsContainer.style.display =
+        questionsContainer.style.display === "none" ? "block" : "none";
+    }
+  });
+}
+
+// Add a question row to the table
+function addSetQuizRow(quiz, tableBody) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${escapeHTML(quiz.question)}</td>
+    <td>${(quiz.options || []).map(escapeHTML).join(", ")}</td>
+    <td>${escapeHTML(quiz.correct_answer)}</td>
+    <td>${(quiz.tags || []).map(escapeHTML).join(", ")}</td>
+    <td>
+      <button class="edit-btn" data-id="${quiz.id}">Edit</button>
+      <button class="delete-btn" data-id="${quiz.id}">Delete</button>
+    </td>
+  `;
+  tableBody.appendChild(tr);
+
+  tr.querySelector(".edit-btn").onclick = () => editQuiz(quiz);
+  tr.querySelector(".delete-btn").onclick = () => deleteQuiz(quiz.id);
+}
+
+// Load questions for a specific quiz set
+async function loadSetQuestions(setId, table) {
+  try {
+    const res = await fetch(`${BASE_URL}/quiz-sets/${setId}/quizzes`, {
+      headers: { Authorization: `Bearer ${Session.token()}` },
+    });
+
+    if (!res.ok)
+      throw new Error(`Failed to load questions (Status: ${res.status})`);
+
+    const questions = await res.json();
+    table.innerHTML = "";
+
+    if (!questions || questions.length === 0) {
+      table.innerHTML = "<p>No questions found in this set yet.</p>";
+      return;
+    }
+
+    questions.forEach((q) => addSetQuizRow(q, table));
+  } catch (err) {
+    console.error("Error loading quiz set questions:", err);
+    table.innerHTML = "<p>Failed to load questions. Please try again.</p>";
+  }
+}
+
 // Only for admins
 if (Session.user().role === "admin" && userQuizSection) {
   // 1️⃣ Create the admin quiz section once

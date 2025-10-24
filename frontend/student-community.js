@@ -1,5 +1,5 @@
 import { Session } from "./session.js";
-import { BASE_URL } from "./config.js";
+import { BASE_URL, SOCKET_URL } from "./config.js";
 
 // ==============================
 // Utility to fetch with auth token
@@ -13,8 +13,10 @@ const fetchWithAuth = async (url, options = {}) => {
     "Content-Type": "application/json",
   };
   const res = await fetch(url, options);
-  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  if (!res.ok)
+    throw new Error(data.error || `HTTP error! status: ${res.status}`);
+  return data;
 };
 
 // ==============================
@@ -697,7 +699,7 @@ export const setupAskQuestionFeature = () => {
 export const submitAnswer = async (postId) => {
   try {
     const answerInput = document.getElementById(`answer-input-${postId}`);
-    const answer = escapeHTML(answerInput.value.trim());
+    const answer = answerInput.value.trim();
     if (!answer) return alert("Please type an answer.");
 
     const res = await fetchWithAuth(`${BASE_URL}/student/community/answers`, {
@@ -781,46 +783,52 @@ export const loadAnswers = async (postId, event = null) => {
       answerCard.id = `answer-card-${ans.id}`;
       answerCard.dataset.authorId = ans.user_id;
 
-      answerCard.innerHTML = `
-        <p><strong>${escapeHTML(authorName)}:</strong> ${escapeHTML(
+      const answerBodyHTML = `<div class="answer-body">${formatTextWithCode(
         ans.answer
-      )}</p>
-        <div class="qa-meta">
-          <span class="qa-date">${new Date(ans.created_at).toLocaleString([], {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}</span>
-        </div>
-        <div class="answer-reactions">
-          <button class="reaction-btn" data-answer-id="${
-            ans.id
-          }" data-type="like">
-            👍 <span id="like-count-${ans.id}">${ans.likes ?? 0}</span>
-          </button>
-          <button class="reaction-btn" data-answer-id="${
-            ans.id
-          }" data-type="dislike">
-            👎 <span id="dislike-count-${ans.id}">${ans.dislikes ?? 0}</span>
-          </button>
-          <button class="comment-btn" data-answer-id="${
-            ans.id
-          }" data-author-id="${ans.user_id}">
-            💬 Comments
-          </button>
-        </div>
-        <div id="comments-${ans.id}" class="comments-section"></div>
-        ${
-          canEditDelete
-            ? `<div class="answer-actions">
-                 <button class="edit-answer-btn" data-answer-id="${ans.id}">✏️ Edit Answer</button>
-                 <button class="delete-answer-btn" data-answer-id="${ans.id}">🗑️ Delete Answer</button>
-               </div>`
-            : ""
-        }
-      `;
+      )}</div>`;
+
+      answerCard.innerHTML = `
+          <p><strong>${escapeHTML(authorName)}:</strong></p>
+          ${answerBodyHTML}
+          <div class="qa-meta">
+            <span class="qa-date">${new Date(ans.created_at).toLocaleString(
+              [],
+              {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              }
+            )}</span>
+          </div>
+          <div class="answer-reactions">
+            <button class="reaction-btn" data-answer-id="${
+              ans.id
+            }" data-type="like">
+              👍 <span id="like-count-${ans.id}">${ans.likes ?? 0}</span>
+            </button>
+            <button class="reaction-btn" data-answer-id="${
+              ans.id
+            }" data-type="dislike">
+              👎 <span id="dislike-count-${ans.id}">${ans.dislikes ?? 0}</span>
+            </button>
+            <button class="comment-btn" data-answer-id="${
+              ans.id
+            }" data-author-id="${ans.user_id}">
+              💬 Comments
+            </button>
+          </div>
+          <div id="comments-${ans.id}" class="comments-section"></div>
+          ${
+            canEditDelete
+              ? `<div class="answer-actions">
+                  <button class="edit-answer-btn" data-answer-id="${ans.id}">✏️ Edit Answer</button>
+                  <button class="delete-answer-btn" data-answer-id="${ans.id}">🗑️ Delete Answer</button>
+                </div>`
+              : ""
+          }
+        `;
 
       answersDiv.appendChild(answerCard);
 
@@ -1021,6 +1029,33 @@ export const loadAdminAnswers = async (postId) => {
   }
 };
 
+// Utility function to safely render code
+function formatTextWithCode(input) {
+  if (!input) return "";
+
+  let safeText = input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Block code: ```lang ... ```
+  safeText = safeText.replace(
+    /```(\w+)?\n([\s\S]*?)```/g,
+    (match, lang, code) => {
+      const language = lang || "plaintext";
+      return `<pre><code class="hljs language-${language}">${code.trim()}</code></pre>`;
+    }
+  );
+
+  // Inline code: `code`
+  safeText = safeText.replace(
+    /`([^`]+)`/g,
+    `<code class="hljs inline-code">$1</code>`
+  );
+
+  return safeText;
+}
+
 // Load Admin Posts
 export const loadAdminPosts = async () => {
   try {
@@ -1035,8 +1070,10 @@ export const loadAdminPosts = async () => {
         const postDiv = document.createElement("div");
         postDiv.classList.add("admin-post-card");
         postDiv.innerHTML = `
-          <h4 class="qa-title">${escapeHTML(post.title)}</h4>
-          <p>${escapeHTML(post.body)}</p>
+        <h4 class="qa-title">${escapeHTML(post.title)}</h4>
+        <div class="qa-body">
+          ${formatTextWithCode(post.body)}
+        </div>
           
         <div class="qa-meta">
         <span class="qa-author">${
@@ -1127,7 +1164,7 @@ export const loadQuizzes = async () => {
     // Shuffle options for each quiz
     quizzes = quizzes.map((quiz) => ({
       ...quiz,
-      options: shuffleArray([...quiz.options]), // copy and shuffle
+      options: shuffleArray([...quiz.options]),
     }));
 
     let currentIndex = 0;
@@ -1346,6 +1383,353 @@ export const submitQuiz = async (quizId, selectedOption) => {
   }
 };
 
+//=========================
+// Quiz Battle
+//=========================
+
+export const setupQuizBattleFeature = async () => {
+  const quizTabLink = document.querySelector('.tab-link[data-tab="quiz"]');
+  const quizTab = document.getElementById("community-quiz");
+  let initialized = false;
+
+  if (!quizTabLink || !quizTab) return;
+  const { io } = await import(
+    "https://cdn.socket.io/4.8.1/socket.io.esm.min.js"
+  );
+
+  quizTabLink.addEventListener("click", () => {
+    if (!initialized) {
+      initializeQuizBattle();
+      initialized = true;
+    }
+  });
+
+  function initializeQuizBattle() {
+    console.log("Initializing multiplayer quiz battle...");
+
+    const startBtn = document.getElementById("start-match-btn");
+    const joinBtn = document.getElementById("join-match-btn");
+    const joinInput = document.getElementById("join-code-input");
+    const quizContainer = document.getElementById("quiz-battle-container");
+    const matchStatus = document.getElementById("match-status");
+    const matchIdDisplay = document.getElementById("match-id-display");
+    const opponentName = document.getElementById("opponent-name");
+    const submitBtn = document.getElementById("submit-answer-btn");
+    const nextBtn = document.getElementById("next-question-btn");
+    const finalizeBtn = document.getElementById("finalize-match-btn");
+    const feedbackDiv = document.getElementById("battle-feedback");
+
+    const socket = io(SOCKET_URL);
+
+    let currentMatchId = null;
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let selectedAnswer = null;
+    let playerLives = 3;
+    let opponentLives = 3;
+    let playerScore = 0;
+    let opponentScore = 0;
+
+    let player1Id = null;
+    let player2Id = null;
+
+    // ------------------- Socket listeners -------------------
+    // Always listen immediately for players joining
+    socket.on("player_joined", async (data) => {
+      if (Session.user()?.id === player1Id) {
+        // Player 1 sees Player 2 joined
+        opponentName.textContent = data.playerName || "Player 2";
+        matchStatus.textContent = "Match started!";
+        await startQuizBattle();
+      }
+    });
+
+    socket.on("score_update", (data) => {
+      if (data.playerId !== Session.user()?.id) {
+        opponentScore = data.playerScore;
+        opponentLives = data.playerLives;
+        feedbackDiv.textContent = `Opponent lives: ${opponentLives}`;
+      }
+    });
+
+    socket.on("match_result", (res) => {
+      let message = "";
+      const currentUserId = Session.user()?.id;
+
+      if (res.result === "draw") message = "It's a draw!";
+      else if (res.winner_id === currentUserId) message = "You won!";
+      else message = "You lost!";
+
+      feedbackDiv.textContent = message;
+      submitBtn.style.display = "none";
+      nextBtn.style.display = "none";
+      finalizeBtn.style.display = "none";
+    });
+
+    // ------------------- Helper functions -------------------
+    function setMatchPlayers(match) {
+      player1Id = match.player1_id;
+      player2Id = match.player2_id;
+    }
+
+    function showQuestion() {
+      const q = questions[currentQuestionIndex];
+      if (!q) return;
+
+      document.getElementById("question-text").textContent = q.question;
+      const optionsDiv = document.getElementById("options-container");
+      optionsDiv.innerHTML = "";
+      selectedAnswer = null;
+
+      q.options.forEach((opt, idx) => {
+        const optionWrapper = document.createElement("div");
+        optionWrapper.classList.add("quiz-option-card");
+
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = `question-${q.quiz_id}`;
+        input.id = `question-${q.quiz_id}-opt-${idx}`;
+        input.value = opt;
+
+        const label = document.createElement("label");
+        label.htmlFor = input.id;
+        label.textContent = opt;
+
+        optionWrapper.appendChild(input);
+        optionWrapper.appendChild(label);
+        optionsDiv.appendChild(optionWrapper);
+
+        input.addEventListener("change", () => {
+          selectedAnswer = input.value;
+          optionsDiv
+            .querySelectorAll(".quiz-option-card")
+            .forEach((c) => c.classList.remove("selected"));
+          optionWrapper.classList.add("selected");
+        });
+      });
+
+      submitBtn.style.display = "inline-block";
+      nextBtn.style.display = "none";
+      feedbackDiv.textContent = "";
+    }
+
+    async function startQuizBattle() {
+      quizContainer.style.display = "block";
+      matchStatus.textContent = "Quiz started!";
+
+      try {
+        questions = await fetchWithAuth(
+          `${BASE_URL}/game-matches/match/${currentMatchId}/questions`
+        );
+
+        if (!questions.length) throw new Error("No quizzes found.");
+        showQuestion();
+      } catch (err) {
+        console.error("Error loading questions:", err);
+        matchStatus.textContent = "Failed to load questions.";
+      }
+    }
+
+    async function finalizeMatch() {
+      try {
+        const res = await fetchWithAuth(`${BASE_URL}/game-matches/finalize`, {
+          method: "POST",
+          body: JSON.stringify({ room_code: currentMatchId }),
+        });
+
+        socket.emit("match_finalized", { room: currentMatchId, result: res });
+      } catch (err) {
+        console.error("Error finalizing match:", err);
+      }
+    }
+
+    // ------------------- Event Handlers -------------------
+    // Start match (Player 1)
+    startBtn.addEventListener("click", async () => {
+      try {
+        const player1_id = Session.user()?.id;
+        if (!player1_id) throw new Error("No user ID found");
+
+        const res = await fetchWithAuth(`${BASE_URL}/game-matches/`, {
+          method: "POST",
+          body: JSON.stringify({ player1_id }),
+        });
+
+        currentMatchId = res.match.room_code;
+        setMatchPlayers(res.match);
+
+        matchIdDisplay.textContent = currentMatchId;
+        document.getElementById("active-match").style.display = "block";
+        matchStatus.textContent = "Waiting for opponent...";
+        opponentName.textContent = "Waiting...";
+        joinInput.style.display = "none";
+
+        // Join socket room immediately
+        socket.emit("join_room", {
+          room_code: currentMatchId,
+          user_id: Session.user()?.id,
+        });
+      } catch (err) {
+        console.error("Error starting match:", err);
+        alert(err.message || "Failed to start match.");
+      }
+    });
+
+    // Join match (Player 2)
+    joinBtn.addEventListener("click", () => {
+      joinInput.style.display = "inline-block";
+      joinInput.focus();
+    });
+
+    joinInput.addEventListener("keydown", async (e) => {
+      if (e.key !== "Enter") return;
+      const roomCode = joinInput.value.trim();
+      if (!roomCode) return;
+
+      try {
+        const res = await fetchWithAuth(`${BASE_URL}/game-matches/join`, {
+          method: "POST",
+          body: JSON.stringify({
+            room_code: roomCode,
+            player2_id: Session.user()?.id,
+          }),
+        });
+
+        if (res.match && res.match.room_code) {
+          currentMatchId = res.match.room_code;
+          setMatchPlayers(res.match);
+
+          matchIdDisplay.textContent = currentMatchId;
+          document.getElementById("active-match").style.display = "block";
+          opponentName.textContent = res.match.player1_name || "Player 1";
+          matchStatus.textContent = "Match started!";
+          joinInput.style.display = "none";
+
+          await startQuizBattle();
+          socket.emit("join_room", {
+            room_code: currentMatchId,
+            user_id: Session.user()?.id,
+          });
+
+          // Notify Player 1 that you joined
+          socket.emit("player_joined", {
+            room_code: currentMatchId,
+            playerName: Session.user()?.name,
+          });
+        }
+      } catch (err) {
+        console.error("Error joining match:", err);
+        alert(err.message || "Failed to join match.");
+      }
+    });
+
+    // Submit and next question
+    submitBtn.addEventListener("click", async () => {
+      if (!selectedAnswer) return alert("Please select an option!");
+      const currentQuiz = questions[currentQuestionIndex];
+      if (!currentQuiz) return;
+
+      const playerNumber = Session.user().id === player1Id ? 1 : 2;
+
+      try {
+        const res = await fetchWithAuth(
+          `${BASE_URL}/game-matches/submit-answer`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              match_quiz_id: currentQuiz.match_quiz_id,
+              player: playerNumber,
+              answer: selectedAnswer,
+            }),
+          }
+        );
+
+        const correct =
+          res.correctAnswer &&
+          selectedAnswer &&
+          res.correctAnswer.trim().toLowerCase() ===
+            selectedAnswer.trim().toLowerCase();
+
+        if (!correct) playerLives--;
+        else playerScore++;
+
+        feedbackDiv.textContent = correct
+          ? "✅ Correct!"
+          : `❌ Wrong! Lives left: ${playerLives}`;
+
+        socket.emit("update_score", {
+          room_code: currentMatchId,
+          playerScore,
+          playerLives,
+          playerId: Session.user().id,
+        });
+
+        submitBtn.style.display = "none";
+        nextBtn.style.display = "inline-block";
+
+        if (playerLives <= 0) finalizeMatch();
+      } catch (err) {
+        console.error("Error submitting answer:", err);
+      }
+    });
+
+    nextBtn.addEventListener("click", async () => {
+      currentQuestionIndex++;
+
+      if (currentQuestionIndex < questions.length) {
+        // Show next question
+        showQuestion();
+      } else {
+        // Last question answered -> finalize match
+        try {
+          const res = await fetchWithAuth(`${BASE_URL}/game-matches/finalize`, {
+            method: "POST",
+            body: JSON.stringify({ room_code: currentMatchId }),
+          });
+
+          // Emit final result to opponent via socket
+          socket.emit("match_finalized", { room: currentMatchId, result: res });
+
+          // Display summary to current player
+          let summaryMsg = `
+            🏆 Match Completed!<br>
+            Your Score: ${
+              Session.user().id === player1Id
+                ? res.player1_total
+                : res.player2_total
+            }<br>
+            Opponent Score: ${
+              Session.user().id === player1Id
+                ? res.player2_total
+                : res.player1_total
+            }<br>
+            XP Gained: ${
+              Session.user().id === player1Id
+                ? res.player1_total * 10
+                : res.player2_total * 10
+            }<br>
+          `;
+
+          if (res.result === "draw") summaryMsg += "Result: It's a draw!";
+          else if (res.winner_id === Session.user().id)
+            summaryMsg += "Result: You won!";
+          else summaryMsg += "Result: You lost!";
+
+          feedbackDiv.innerHTML = summaryMsg;
+
+          // Hide quiz controls
+          submitBtn.style.display = "none";
+          nextBtn.style.display = "none";
+          finalizeBtn.style.display = "none";
+        } catch (err) {
+          console.error("Error finalizing match:", err);
+          feedbackDiv.textContent = "Error finalizing match. Please refresh.";
+        }
+      }
+    });
+  }
+};
+
 // ==============================
 // Initialize community
 // ==============================
@@ -1365,6 +1749,9 @@ export const initStudentCommunity = async () => {
     await loadAdminPosts();
     console.log("Quizzes loaded");
     setupAskQuestionFeature();
+
+    // Initialize multiplayer quiz
+    setupQuizBattleFeature();
   } catch (err) {
     console.error("Error in initStudentCommunity:", err);
   }

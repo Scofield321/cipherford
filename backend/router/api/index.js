@@ -25,6 +25,8 @@ router.use("/qa", require("./qa"));
 router.use("/ai", require("./aiHugging"));
 router.use("/student/community", require("./studentCommunityRoutes"));
 router.use("/answer-reactions", require("./answerReactions"));
+router.use("/game-matches", require("./gameMatchRoutes"));
+router.use("/quiz-sets", require("./quizSetRoutes"));
 
 // ✅ No catch-all here; 404 is handled in server.js
 

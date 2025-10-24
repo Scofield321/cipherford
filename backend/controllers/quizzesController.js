@@ -163,7 +163,7 @@ const submitQuizAnswer = async (req, res) => {
 
     // Award XP if correct
     if (isCorrect) {
-      await addXpToUser(userId, 20); // 20 XP per correct answer
+      await addXpToUser(userId, 10);
 
       // Fetch updated XP
       const xpRes = await db.query("SELECT xp FROM user_xp WHERE user_id=$1", [

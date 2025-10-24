@@ -47,11 +47,61 @@
     </div>
   </div>
 
-  <!-- Puzzles -->
+  <!-- Quizzes  -->
   <div id="community-quiz" class="community-tab">
     <section class="puzzles">
-      <h3>Puzzles</h3>
+      <h3>Quizzes</h3>
+
+      <!-- Default solo quizzes (load automatically) -->
       <div id="community-quiz-container"></div>
+
+      <!-- Divider -->
+      <hr style="margin: 20px 0" />
+
+      <!-- Multiplayer section (optional) -->
+      <div id="multiplayer-section">
+        <h4>Challenge a Friend</h4>
+        <div id="match-setup" class="match-setup">
+          <button id="start-match-btn">Start a New Match</button>
+          <button id="join-match-btn">Join Existing Match</button>
+          <input
+            type="text"
+            id="join-code-input"
+            placeholder="Enter Match Code"
+            style="display: none"
+          />
+        </div>
+
+        <!-- Active match info -->
+        <div id="active-match" class="active-match" style="display: none">
+          <p>
+            Match ID: <span id="match-id-display"></span> | Opponent:
+            <span id="opponent-name">Waiting...</span>
+          </p>
+          <div id="match-status">Game starting...</div>
+        </div>
+
+        <!-- Quiz battle area -->
+        <div id="quiz-battle-container" style="display: none">
+          <div id="question-container">
+            <h4 id="question-text"></h4>
+            <div id="options-container"></div>
+          </div>
+
+          <button id="submit-answer-btn" style="margin-top: 10px">
+            Submit Answer
+          </button>
+
+          <div id="battle-feedback" style="margin-top: 15px"></div>
+
+          <button id="next-question-btn" style="display: none">
+            Next Question
+          </button>
+          <button id="finalize-match-btn" style="display: none">
+            Finalize Match
+          </button>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -90,12 +140,35 @@
   </div>
 </div>
 
+<!-- Socket.IO client -->
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+
 <script type="module">
   import { initStudentCommunity } from "./student-community.js";
+  window.io = io;
 
   // Initialize community section immediately
   document.addEventListener("DOMContentLoaded", () => {
     initStudentCommunity();
+  });
+</script>
+
+<!-- ===== Highlight.js Syntax Highlighting ===== -->
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+<!-- Optional: load extra languages you expect -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/css.min.js"></script>
+
+<script>
+  // Initialize highlight.js after the DOM and modules load
+  document.addEventListener("DOMContentLoaded", () => {
+    hljs.highlightAll();
   });
 </script>
 
@@ -186,13 +259,13 @@
   /* ---------------------------
    BUTTONS
 --------------------------- */
-  button {
+  #community-section button {
     background-color: #00cccc;
     color: #000;
     transition: background-color 0.2s ease-in-out;
     margin-top: 1rem;
   }
-  button:hover {
+  #community-section button:hover {
     background-color: #00ffff;
   }
 
@@ -480,8 +553,8 @@
   }
 
   .reaction-btn {
-    background: #1b2838;
-    color: var(--primary);
+    background: #1b2838 !important;
+    color: var(--primary) !important;
     border-radius: 5px;
     padding: 0.25rem 0.5rem;
     font-weight: 600;
@@ -491,7 +564,6 @@
     background: var(--secondary-hover);
     transform: translateY(-1px);
   }
-
   /* Post Status Labels */
   .post-status {
     display: inline-block;

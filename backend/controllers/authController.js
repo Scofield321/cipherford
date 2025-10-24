@@ -76,7 +76,7 @@ const registerUser = async (req, res) => {
     // this is just for testing
     // ============ Token and Response ============
     const token = jwt.sign({ id: userId, role: role }, "your_jwt_secret", {
-      expiresIn: "1h",
+      expiresIn: "1d",
     });
 
     res.json({ token, user: newUser.rows[0] });
@@ -127,7 +127,7 @@ const loginUser = async (req, res) => {
       { id: user.id, role: user.role },
       "your_jwt_secret",
       {
-        expiresIn: "1h",
+        expiresIn: "1d",
       }
     );
 

@@ -1,39 +1,29 @@
 const dotenv = require("dotenv");
-
 const envFile =
   process.env.NODE_ENV === "production" ? ".env.production" : ".env";
 dotenv.config({ path: envFile });
 
 const express = require("express");
 const cors = require("cors");
-// const dotenv = require("dotenv");;
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
 const pool = require("./config/db");
 
-// dotenv.config();
 const app = express();
 const server = http.createServer(app);
+
+const { finalizeMatchSocket } = require("./controllers/gameMatchController");
 
 // -------------------------
 // Socket.io setup
 // -------------------------
 const io = new Server(server, {
   cors: {
-    origin: "*", // Adjust if needed
+    origin: "*", // Adjust for production
     methods: ["GET", "POST"],
   },
 });
-
-// -------------------------
-// PORT check
-// -------------------------
-const PORT = process.env.PORT || 5000;
-if (!PORT) {
-  console.error("❌ No PORT environment variable found!");
-  process.exit(1);
-}
 
 // -------------------------
 // Middleware
@@ -61,11 +51,10 @@ app.use(
   })
 );
 
-// ✅ Use path.join with __dirname to point to actual folder
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // -------------------------
-// Download certificate
+// Routes (certificate, badge, resource downloads)
 // -------------------------
 app.get("/api/certificates/:id/download", async (req, res) => {
   const { id } = req.params;
@@ -76,10 +65,7 @@ app.get("/api/certificates/:id/download", async (req, res) => {
     );
     if (!rows.length)
       return res.status(404).json({ msg: "Certificate not found" });
-
     const { file_url, title } = rows[0];
-    if (!file_url) return res.status(404).json({ msg: "No file associated" });
-
     res.setHeader("Content-Disposition", `attachment; filename="${title}.pdf"`);
     res.redirect(file_url);
   } catch (err) {
@@ -88,9 +74,6 @@ app.get("/api/certificates/:id/download", async (req, res) => {
   }
 });
 
-// -------------------------
-// Download badge
-// -------------------------
 app.get("/api/badges/:id/download", async (req, res) => {
   const { id } = req.params;
   try {
@@ -99,10 +82,7 @@ app.get("/api/badges/:id/download", async (req, res) => {
       [id]
     );
     if (!rows.length) return res.status(404).json({ msg: "Badge not found" });
-
     const { file_url, title } = rows[0];
-    if (!file_url) return res.status(404).json({ msg: "No file associated" });
-
     res.setHeader("Content-Disposition", `attachment; filename="${title}.png"`);
     res.redirect(file_url);
   } catch (err) {
@@ -111,9 +91,6 @@ app.get("/api/badges/:id/download", async (req, res) => {
   }
 });
 
-// -------------------------
-// Download resource
-// -------------------------
 app.get("/api/resources/:id/download", async (req, res) => {
   const { id } = req.params;
   try {
@@ -123,11 +100,7 @@ app.get("/api/resources/:id/download", async (req, res) => {
     );
     if (!rows.length)
       return res.status(404).json({ msg: "Resource not found" });
-
     const { file_url, title } = rows[0];
-    if (!file_url) return res.status(404).json({ msg: "No file associated" });
-
-    // Use original file extension if stored
     const ext = path.extname(file_url) || ".pdf";
     res.setHeader(
       "Content-Disposition",
@@ -175,18 +148,65 @@ app.use((err, req, res, next) => {
 });
 
 // -------------------------
-// Socket.io logic
+// Socket.io logic (Real-time Quiz Battle)
 // -------------------------
 io.on("connection", (socket) => {
-  console.log("👤 A user connected");
+  console.log("👤 A user connected:", socket.id);
 
-  socket.on("join_student", (studentId) => {
-    socket.join(`student`);
-    console.log(`📡 User joined room student`);
+  // ✅ Player joins a specific match room
+  socket.on("join_room", ({ room_code, user_id }) => {
+    socket.join(room_code);
+    console.log(`🟢 User ${user_id} joined room ${room_code}`);
+    const roomInfo = io.sockets.adapter.rooms.get(room_code);
+    console.log(
+      `Room ${room_code} now has ${roomInfo ? roomInfo.size : 0} players.`
+    );
+  });
+
+  // ✅ Notify player 1 when player 2 joins
+  socket.on("player_joined", (data) => {
+    const { room_code, playerName } = data;
+    console.log(`📢 Player joined room ${room_code}: ${playerName}`);
+    socket.to(room_code).emit("player_joined", data);
+  });
+
+  // ✅ Handle answer submissions
+  socket.on(
+    "submit_answer",
+    async ({ room_code, match_quiz_id, player, answer }) => {
+      try {
+        // Save answer to DB (replace with actual score logic)
+        await pool.query(
+          `UPDATE game_match_quizzes 
+           SET ${player === 1 ? "player1_score" : "player2_score"} = $1 
+           WHERE id = $2`,
+          [answer, match_quiz_id]
+        );
+
+        // Broadcast update to both players
+        io.to(room_code).emit("answer_submitted", {
+          match_quiz_id,
+          player,
+          answer,
+        });
+      } catch (err) {
+        console.error("❌ Error submitting answer:", err.message);
+      }
+    }
+  );
+
+  // ✅ Finalize match and notify both players
+  socket.on("finalize_match", async ({ room_code }) => {
+    try {
+      const result = await finalizeMatchSocket(room_code);
+      if (result) io.to(room_code).emit("match_finalized", result);
+    } catch (err) {
+      console.error("❌ Error finalizing match:", err.message);
+    }
   });
 
   socket.on("disconnect", () => {
-    console.log("👋 A user disconnected");
+    console.log("👋 A user disconnected:", socket.id);
   });
 });
 
@@ -196,7 +216,7 @@ app.set("io", io);
 // -------------------------
 // Start the server
 // -------------------------
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-// testing
