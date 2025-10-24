@@ -1406,6 +1406,8 @@ export const setupQuizBattleFeature = async () => {
 
   function initializeQuizBattle() {
     console.log("Initializing multiplayer quiz battle...");
+    const submitLoader = document.getElementById("submit-loader");
+    const nextLoader = document.getElementById("next-loader");
 
     const startBtn = document.getElementById("start-match-btn");
     const joinBtn = document.getElementById("join-match-btn");
@@ -1632,6 +1634,8 @@ export const setupQuizBattleFeature = async () => {
       const playerNumber = Session.user().id === player1Id ? 1 : 2;
 
       try {
+        submitBtn.disabled = true;
+        submitLoader.style.display = "block";
         const res = await fetchWithAuth(
           `${BASE_URL}/game-matches/submit-answer`,
           {
@@ -1670,27 +1674,32 @@ export const setupQuizBattleFeature = async () => {
         if (playerLives <= 0) finalizeMatch();
       } catch (err) {
         console.error("Error submitting answer:", err);
+      } finally {
+        submitLoader.style.display = "none";
+        submitBtn.disabled = false;
       }
     });
 
     nextBtn.addEventListener("click", async () => {
-      currentQuestionIndex++;
+      nextBtn.disabled = true;
+      nextLoader.style.display = "block";
+      // nextText.style.display = "none";
 
-      if (currentQuestionIndex < questions.length) {
-        // Show next question
-        showQuestion();
-      } else {
-        // Last question answered -> finalize match
-        try {
+      try {
+        currentQuestionIndex++;
+
+        if (currentQuestionIndex < questions.length) {
+          // Show next question
+          showQuestion();
+        } else {
+          // Last question answered -> finalize match
           const res = await fetchWithAuth(`${BASE_URL}/game-matches/finalize`, {
             method: "POST",
             body: JSON.stringify({ room_code: currentMatchId }),
           });
 
-          // Emit final result to opponent via socket
           socket.emit("match_finalized", { room: currentMatchId, result: res });
 
-          // Display summary to current player
           let summaryMsg = `
             🏆 Match Completed!<br>
             Your Score: ${
@@ -1721,10 +1730,15 @@ export const setupQuizBattleFeature = async () => {
           submitBtn.style.display = "none";
           nextBtn.style.display = "none";
           finalizeBtn.style.display = "none";
-        } catch (err) {
-          console.error("Error finalizing match:", err);
-          feedbackDiv.textContent = "Error finalizing match. Please refresh.";
         }
+      } catch (err) {
+        console.error("Error loading next question:", err);
+        feedbackDiv.textContent =
+          "Error loading next question. Please try again.";
+      } finally {
+        nextLoader.style.display = "none";
+        // nextText.style.display = "inline";
+        nextBtn.disabled = false;
       }
     });
   }

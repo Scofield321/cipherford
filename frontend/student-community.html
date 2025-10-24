@@ -91,11 +91,32 @@
           <button id="submit-answer-btn" style="margin-top: 10px">
             Submit Answer
           </button>
+          <div id="submit-loader" class="loader" style="display: none"></div>
 
           <div id="battle-feedback" style="margin-top: 15px"></div>
 
-          <button id="next-question-btn" style="display: none">
-            Next Question
+          <button
+            id="next-question-btn"
+            style="display: none; position: relative"
+          >
+            <span class="btn-text">Next Question</span>
+            <div
+              class="loader"
+              id="next-loader"
+              style="
+                display: none;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 20px;
+                height: 20px;
+                border: 3px solid #2f3f50;
+                border-top: 3px solid #1a9fff;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+              "
+            ></div>
           </button>
           <button id="finalize-match-btn" style="display: none">
             Finalize Match
@@ -536,12 +557,15 @@
     width: 35px;
     height: 35px;
     animation: spin 1s linear infinite;
-    margin: 40px auto; /* center horizontally + add breathing space */
+    margin: 40px auto;
     display: block;
   }
 
   @keyframes spin {
-    to {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
       transform: rotate(360deg);
     }
   }
